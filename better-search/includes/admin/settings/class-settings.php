@@ -146,7 +146,9 @@ class Settings {
 		add_action( 'admin_menu', array( $this, 'initialise_settings' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 11, 2 );
 		add_filter( 'plugin_action_links_' . plugin_basename( BETTER_SEARCH_PLUGIN_FILE ), array( $this, 'plugin_actions_links' ) );
-		add_filter( 'bsearch_settings_sanitize', array( $this, 'change_settings_on_save' ), 99 );
+		add_filter( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ), 99 );
+		add_filter( self::$prefix . '_settings_sanitize', array( $this, 'change_settings_on_save' ), 99 );
+		add_filter( self::$prefix . '_after_setting_output', array( $this, 'after_setting_output' ), 10, 2 );
 	}
 
 	/**
@@ -293,6 +295,21 @@ class Settings {
 				'type'    => 'checkbox',
 				'options' => true,
 			),
+			'enable_live_search'  => array(
+				'id'      => 'enable_live_search',
+				'name'    => esc_html__( 'Enable live search', 'better-search' ),
+				'desc'    => esc_html__( 'This option will enable the live search feature on the search form.', 'better-search' ),
+				'type'    => 'checkbox',
+				'options' => false,
+			),
+			'enable_rest_api'     => array(
+				'id'      => 'enable_rest_api',
+				'name'    => esc_html__( 'Enable REST API', 'better-search' ),
+				'desc'    => esc_html__( 'When enabled, the REST API endpoint (search) will display relevant search results.', 'better-search' ),
+				'type'    => 'checkbox',
+				'options' => false,
+				'pro'     => true,
+			),
 			'track_popular'       => array(
 				'id'      => 'track_popular',
 				'name'    => esc_html__( 'Enable search tracking', 'better-search' ),
@@ -319,12 +336,12 @@ class Settings {
 				'name'    => esc_html__( 'Enable cache', 'better-search' ),
 				'desc'    => esc_html__( 'If activated, Better Search will use the Transients API to cache the search results for 1 hour.', 'better-search' ),
 				'type'    => 'checkbox',
-				'options' => false,
+				'options' => true,
 			),
 			'cache_time'          => array(
 				'id'      => 'cache_time',
-				'name'    => esc_html__( 'Time to cache', 'top-10' ),
-				'desc'    => esc_html__( 'Enter the number of seconds to cache the output.', 'top-10' ),
+				'name'    => esc_html__( 'Time to cache', 'better-search' ),
+				'desc'    => esc_html__( 'Enter the number of seconds to cache the output.', 'better-search' ),
 				'type'    => 'text',
 				'options' => HOUR_IN_SECONDS,
 			),
@@ -388,7 +405,7 @@ class Settings {
 			),
 			'use_fulltext'             => array(
 				'id'      => 'use_fulltext',
-				'name'    => esc_html__( 'Enable mySQL FULLTEXT searching', 'better-search' ),
+				'name'    => esc_html__( 'Enable MySQL FULLTEXT searching', 'better-search' ),
 				'desc'    => esc_html__( 'Disabling this option will no longer give relevancy based results', 'better-search' ),
 				'type'    => 'checkbox',
 				'options' => true,
@@ -416,6 +433,45 @@ class Settings {
 				'type'    => 'number',
 				'options' => '1',
 				'size'    => 'small',
+			),
+			'min_relevance'            => array(
+				'id'      => 'min_relevance',
+				'name'    => esc_html__( 'Minimum relevance percentage', 'better-search' ),
+				'desc'    => esc_html__( 'The minimum relevance percentage required for a post to be included in the search results. This is a number between 0 and 100.', 'better-search' ),
+				'type'    => 'number',
+				'options' => '0',
+				'size'    => 'small',
+				'pro'     => true,
+				'max'     => 100,
+				'min'     => 0,
+			),
+			'fuzzy_search_level'       => array(
+				'id'      => 'fuzzy_search_level',
+				'name'    => esc_html__( 'Fuzzy search level', 'better-search' ),
+				'desc'    => esc_html__( 'This option will allow you to enable fuzzy search. Adjust the level of flexibility for matching search terms. Higher levels may include more results with potential misspellings. Note that fuzzy searching can be computationally intensive, so it is recommended to have caching enabled, especially on high traffic sites.', 'better-search' ),
+				'type'    => 'select',
+				'options' => array(
+					'off'    => esc_html__( 'Off', 'better-search' ),
+					'low'    => esc_html__( 'Low', 'better-search' ),
+					'medium' => esc_html__( 'Medium', 'better-search' ),
+					'high'   => esc_html__( 'High', 'better-search' ),
+				),
+				'default' => 'off',
+				'pro'     => true,
+			),
+			'search_header'            => array(
+				'id'   => 'search_header',
+				'name' => '<h3>' . esc_html__( 'Inclusion options', 'better-search' ) . '</h3>',
+				'desc' => '',
+				'type' => 'header',
+			),
+			'search_slug'              => array(
+				'id'      => 'search_slug',
+				'name'    => esc_html__( 'Search Post slug', 'better-search' ),
+				'desc'    => esc_html__( 'Select to search the post slug.', 'better-search' ),
+				'type'    => 'checkbox',
+				'options' => false,
+				'pro'     => true,
 			),
 			'search_excerpt'           => array(
 				'id'      => 'search_excerpt',
@@ -451,6 +507,12 @@ class Settings {
 				'desc'    => esc_html__( 'Select to include posts where comments include the search term(s).', 'better-search' ),
 				'type'    => 'checkbox',
 				'options' => false,
+			),
+			'exclude_header'           => array(
+				'id'   => 'exclude_header',
+				'name' => '<h3>' . esc_html__( 'Exclusion options', 'better-search' ) . '</h3>',
+				'desc' => '',
+				'type' => 'header',
 			),
 			'exclude_protected_posts'  => array(
 				'id'      => 'exclude_protected_posts',
@@ -987,6 +1049,40 @@ class Settings {
 	}
 
 	/**
+	 * Enqueue scripts and styles.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param string $hook Current hook.
+	 */
+	public function admin_enqueue_scripts( $hook ) {
+
+		if ( ! isset( $this->settings_api->settings_page ) || $hook !== $this->settings_api->settings_page ) {
+			return;
+		}
+		wp_localize_script(
+			'wz-admin-js',
+			'bsearch_admin',
+			array()
+		);
+		wp_enqueue_script( 'better-search-admin-js' );
+		wp_enqueue_style( 'better-search-admin-ui-css' );
+		wp_enqueue_style( 'wp-spinner' );
+		wp_localize_script(
+			'better-search-admin-js',
+			'bsearch_admin_data',
+			array(
+				'ajax_url'             => admin_url( 'admin-ajax.php' ),
+				'security'             => wp_create_nonce( 'bsearch-admin' ),
+				'confirm_message'      => esc_html__( 'Are you sure you want to clear the cache?', 'better-search' ),
+				'success_message'      => esc_html__( 'Cache cleared successfully!', 'better-search' ),
+				'fail_message'         => esc_html__( 'Failed to clear cache. Please try again.', 'better-search' ),
+				'request_fail_message' => esc_html__( 'Request failed: ', 'better-search' ),
+			)
+		);
+	}
+
+	/**
 	 * Modify settings when they are being saved.
 	 *
 	 * @since 3.3.0
@@ -1022,5 +1118,25 @@ class Settings {
 		\WebberZone\Better_Search\Util\Cache::delete();
 
 		return $settings;
+	}
+
+	/**
+	 * Updated the settings fields to display a pro version link.
+	 *
+	 * @param string $output Settings field HTML.
+	 * @param array  $args   Settings field arguments.
+	 * @return string Updated HTML.
+	 */
+	public static function after_setting_output( $output, $args ) {
+		if ( isset( $args['pro'] ) && $args['pro'] ) {
+			$output .= sprintf(
+				'<a class="bsearch_button bsearch_button_gold" target="_blank" href="%s" title="%s">%s</a>',
+				esc_url( 'https://webberzone.com/plugins/better-search/pro/' ),
+				esc_attr__( 'Upgrade to Pro', 'better-search' ),
+				esc_html__( 'Upgrade to Pro', 'better-search' )
+			);
+		}
+
+		return $output;
 	}
 }

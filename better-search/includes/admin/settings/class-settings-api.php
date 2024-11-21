@@ -6,7 +6,7 @@
  * Portions of this code have been inspired by Easy Digital Downloads, WordPress Settings Sandbox, WordPress Settings API class, etc.
  *
  * @link  https://webberzone.com
- * @since 1.7.0
+ * @since 3.3.0
  *
  * @package WebberZone\Better_Search
  */
@@ -21,8 +21,9 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Settings API wrapper class
  *
- * @version 2.3.0
+ * @version 2.5.2
  */
+#[\AllowDynamicProperties]
 class Settings_API {
 
 	/**
@@ -30,7 +31,7 @@ class Settings_API {
 	 *
 	 * @var   string
 	 */
-	const VERSION = '2.3.0';
+	const VERSION = '2.5.2';
 
 	/**
 	 * Settings Key.
@@ -182,6 +183,22 @@ class Settings_API {
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
+		add_filter( 'admin_body_class', array( $this, 'admin_body_class' ) );
+	}
+
+	/**
+	 * Filters the CSS classes for the body tag in the admin.
+	 *
+	 * @param string $classes Space-separated list of CSS classes.
+	 * @return string Space-separated list of CSS classes.
+	 */
+	public function admin_body_class( $classes ) {
+		$current_screen = get_current_screen();
+
+		if ( in_array( $current_screen->id, $this->menu_pages, true ) ) {
+			$classes .= ' ' . $this->prefix . '-dashboard-page';
+		}
+		return $classes;
 	}
 
 	/**
@@ -332,7 +349,7 @@ class Settings_API {
 			'parent_slug' => 'options-general.php',
 			'page_title'  => '',
 			'menu_title'  => '',
-			'capability'  => 'manage_options',
+			'capability'  => $this->get_capability_for_menu(),
 			'menu_slug'   => '',
 			'function'    => array( $this, 'plugin_settings' ),
 
@@ -416,11 +433,79 @@ class Settings_API {
 	}
 
 	/**
+	 * Get the appropriate capability for the menu based on the user's roles and settings.
+	 *
+	 * @param array    $roles Array of roles to check.
+	 * @param string   $base_capability The default capability.
+	 * @param \WP_User $current_user The current user object.
+	 * @param array    $role_capabilities Array of role capabilities.
+	 * @return string The capability to use for the menu.
+	 */
+	public static function get_capability_for_menu( $roles = array(), $base_capability = 'manage_options', $current_user = null, $role_capabilities = array() ) {
+		if ( ! $current_user ) {
+			$current_user = wp_get_current_user();
+		}
+
+		if ( empty( $roles ) || in_array( 'administrator', $current_user->roles, true ) ) {
+			return $base_capability;
+		}
+
+		if ( empty( $role_capabilities ) ) {
+			$role_capabilities = array(
+				'editor'      => 'edit_others_posts',
+				'author'      => 'publish_posts',
+				'contributor' => 'edit_posts',
+				'subscriber'  => 'read',
+			);
+		}
+
+		foreach ( $current_user->roles as $role ) {
+			if ( in_array( $role, $roles, true ) && isset( $role_capabilities[ $role ] ) ) {
+				return $role_capabilities[ $role ];
+			}
+		}
+
+		return $base_capability;
+	}
+
+	/**
 	 * Enqueue scripts and styles.
 	 *
 	 * @param string $hook The current admin page.
 	 */
 	public function admin_enqueue_scripts( $hook ) {
+
+		$minimize = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+
+		// Settings API scripts.
+		wp_register_script(
+			'wz-admin-js',
+			plugins_url( 'js/settings-admin-scripts' . $minimize . '.js', __FILE__ ),
+			array( 'jquery' ),
+			self::VERSION,
+			true
+		);
+		wp_register_script(
+			'wz-codemirror-js',
+			plugins_url( 'js/apply-codemirror' . $minimize . '.js', __FILE__ ),
+			array( 'jquery' ),
+			self::VERSION,
+			true
+		);
+		wp_register_script(
+			'wz-taxonomy-suggest-js',
+			plugins_url( 'js/taxonomy-suggest' . $minimize . '.js', __FILE__ ),
+			array( 'jquery' ),
+			self::VERSION,
+			true
+		);
+		wp_register_script(
+			'wz-media-selector-js',
+			plugins_url( 'js/media-selector' . $minimize . '.js', __FILE__ ),
+			array( 'jquery' ),
+			self::VERSION,
+			true
+		);
 
 		if ( $hook === $this->settings_page ) {
 			self::enqueue_scripts_styles();
@@ -431,8 +516,6 @@ class Settings_API {
 	 * Enqueues all scripts, styles, settings, and templates necessary to use the Settings API.
 	 */
 	public static function enqueue_scripts_styles() {
-
-		$minimize = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
 
 		wp_enqueue_style( 'wp-color-picker' );
 
@@ -452,27 +535,9 @@ class Settings_API {
 			)
 		);
 
-		wp_enqueue_script(
-			'wz-admin-js',
-			plugins_url( 'js/admin-scripts' . $minimize . '.js', __FILE__ ),
-			array( 'jquery' ),
-			self::VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'wz-codemirror-js',
-			plugins_url( 'js/apply-codemirror' . $minimize . '.js', __FILE__ ),
-			array( 'jquery' ),
-			self::VERSION,
-			true
-		);
-		wp_enqueue_script(
-			'wz-taxonomy-suggest-js',
-			plugins_url( 'js/taxonomy-suggest' . $minimize . '.js', __FILE__ ),
-			array( 'jquery' ),
-			self::VERSION,
-			true
-		);
+		wp_enqueue_script( 'wz-admin-js' );
+		wp_enqueue_script( 'wz-codemirror-js' );
+		wp_enqueue_script( 'wz-taxonomy-suggest-js' );
 	}
 
 	/**
@@ -527,6 +592,7 @@ class Settings_API {
 						'field_class'      => '',
 						'field_attributes' => '',
 						'placeholder'      => '',
+						'pro'              => false,
 					)
 				);
 
@@ -547,7 +613,14 @@ class Settings_API {
 		}
 
 		// Register the settings into the options table.
-		register_setting( $settings_key, $settings_key, array( $this, 'settings_sanitize' ) );
+		register_setting(
+			$settings_key,
+			$settings_key,
+			array(
+				'sanitize_callback' => array( $this, 'settings_sanitize' ),
+				'show_in_rest'      => true,
+			)
+		);
 	}
 
 	/**
@@ -786,8 +859,9 @@ class Settings_API {
 		ob_start();
 		?>
 			<div class="wrap">
+				<?php do_action( $this->prefix . '_settings_page_header_before' ); ?>
 				<h1><?php echo esc_html( $this->translation_strings['page_header'] ); ?></h1>
-			<?php do_action( $this->prefix . '_settings_page_header' ); ?>
+				<?php do_action( $this->prefix . '_settings_page_header' ); ?>
 
 				<div id="poststuff">
 				<div id="post-body" class="metabox-holder columns-2">

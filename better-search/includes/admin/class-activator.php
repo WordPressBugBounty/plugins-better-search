@@ -18,6 +18,9 @@ if ( ! defined( 'WPINC' ) ) {
  */
 class Activator {
 
+	private const TABLE_NAME       = 'bsearch';
+	private const TABLE_NAME_DAILY = 'bsearch_daily';
+
 	/**
 	 * Constructor class.
 	 *
@@ -70,8 +73,8 @@ class Activator {
 	public static function single_activate() {
 		global $wpdb;
 
-		$table_name       = $wpdb->prefix . 'bsearch';
-		$table_name_daily = $wpdb->prefix . 'bsearch_daily';
+		$table_name       = $wpdb->prefix . self::TABLE_NAME;
+		$table_name_daily = $wpdb->prefix . self::TABLE_NAME_DAILY;
 
 		// Create FULLTEXT indexes.
 		$wpdb->hide_errors();
@@ -90,33 +93,139 @@ class Activator {
 			self::recreate_daily_table();
 			update_option( 'bsearch_db_version', BETTER_SEARCH_DB_VERSION );
 		}
+
+		/**
+		 * Fires after the plugin has been activated.
+		 *
+		 * @since 4.0.0
+		 */
+		do_action( 'bsearch_activate' );
 	}
 
-	/** Create fulltext indexes on the posts table.
+	/**
+	 * Create fulltext indexes on the posts table.
 	 *
 	 * @since 3.3.0
 	 */
 	public static function create_fulltext_indexes() {
+		// Get the list of fulltext indexes.
+		$indexes = self::get_fulltext_indexes();
+
+		// Loop through the indexes and create them if not exist.
+		foreach ( $indexes as $index => $columns ) {
+			if ( ! self::is_index_installed( $index ) ) {
+				self::install_fulltext_index( $index, $columns );
+			}
+		}
+	}
+
+	/**
+	 * Check if a fulltext index already exists on the posts table.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param string $index Index name.
+	 * @return bool True if the index exists, false otherwise.
+	 */
+	private static function is_index_installed( $index ) {
 		global $wpdb;
 
+		$index_exists = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SHOW INDEX FROM {$wpdb->posts} WHERE Key_name = %s",
+				$index
+			)
+		);
+
+		return (bool) $index_exists;
+	}
+
+	/**
+	 * Install a fulltext index on the posts table.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param string $index   Index name.
+	 * @param string $columns Columns to be indexed.
+	 * @return void
+	 */
+	private static function install_fulltext_index( $index, $columns ) {
+		global $wpdb;
+
+		// Install the fulltext index if it doesn't exist.
+		$wpdb->query( 'ALTER TABLE ' . $wpdb->posts . ' ADD FULLTEXT ' . $index . ' ' . $columns . ';' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
+	}
+
+	/**
+	 * Get the list of fulltext indexes to be created on the posts table.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @return array Array of fulltext indexes with their respective columns.
+	 */
+	private static function get_fulltext_indexes() {
 		$indexes = array(
 			'bsearch'         => '(post_title, post_content)',
 			'bsearch_title'   => '(post_title)',
 			'bsearch_content' => '(post_content)',
 		);
 
-		foreach ( $indexes as $index => $columns ) {
-			$index_exists = $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->prepare(
-					"SHOW INDEX FROM {$wpdb->posts} WHERE Key_name = %s",
-					$index
-				)
-			);
+		/**
+		 * Filter the fulltext indexes.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param array $indexes Array of fulltext indexes.
+		 */
+		return apply_filters( 'bsearch_fulltext_indexes', $indexes );
+	}
 
-			if ( ! $index_exists ) {
-				$wpdb->query( 'ALTER TABLE ' . $wpdb->posts . ' ADD FULLTEXT ' . $index . ' ' . $columns . ';' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
+	/**
+	 * Check the status of all fulltext indexes.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @return array Array of index statuses indicating whether they are installed.
+	 */
+	public static function check_fulltext_indexes() {
+		// Get the list of fulltext indexes.
+		$indexes  = self::get_fulltext_indexes();
+		$statuses = array();
+
+		// Check if each index is installed and add to the report.
+		foreach ( $indexes as $index => $columns ) {
+			$statuses[ $index ] = self::is_index_installed( $index )
+				? '<span style="color: #006400;">' . __( 'Installed', 'better-search' ) . '</span>'
+				: '<span style="color: #8B0000;">' . __( 'Not Installed', 'better-search' ) . '</span>';
+		}
+
+		/**
+		 * Filter the index statuses report.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param array $statuses Array of index statuses.
+		 */
+		return apply_filters( 'bsearch_fulltext_index_statuses', $statuses );
+	}
+
+	/**
+	 * Check if all fulltext indexes are installed.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @return bool True if all fulltext indexes are installed, false if any are missing.
+	 */
+	public static function is_fulltext_index_installed() {
+		$indexes = self::get_fulltext_indexes();
+
+		foreach ( $indexes as $index => $columns ) {
+			if ( ! self::is_index_installed( $index ) ) {
+				return false; // Return false if any index is missing.
 			}
 		}
+
+		return true; // Return true if all indexes are installed.
 	}
 
 	/**
@@ -149,8 +258,9 @@ class Activator {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
+		$table_name      = $wpdb->prefix . self::TABLE_NAME;
 
-		$sql = "CREATE TABLE {$wpdb->prefix}bsearch" . // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$sql = "CREATE TABLE {$table_name}" . // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		" (
 			searchvar VARCHAR(100) NOT NULL,
 			cntaccess int NOT NULL,
@@ -171,8 +281,9 @@ class Activator {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
+		$table_name      = $wpdb->prefix . self::TABLE_NAME_DAILY;
 
-		$sql = "CREATE TABLE {$wpdb->prefix}bsearch_daily" . // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$sql = "CREATE TABLE {$table_name}" . // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		" (
 			searchvar VARCHAR(100) NOT NULL,
 			cntaccess int NOT NULL,
@@ -251,7 +362,7 @@ class Activator {
 	public static function recreate_overall_table( $backup = true ) {
 		global $wpdb;
 		return self::recreate_table(
-			$wpdb->prefix . 'bsearch',
+			$wpdb->prefix . self::TABLE_NAME,
 			self::create_full_table_sql(),
 			$backup
 		);
@@ -269,7 +380,7 @@ class Activator {
 	public static function recreate_daily_table( $backup = true ) {
 		global $wpdb;
 		return self::recreate_table(
-			$wpdb->prefix . 'bsearch_daily',
+			$wpdb->prefix . self::TABLE_NAME_DAILY,
 			self::create_daily_table_sql(),
 			$backup,
 			array( 'searchvar', 'cntaccess', 'dp_date' ),
@@ -310,8 +421,8 @@ class Activator {
 	public static function on_delete_blog( $tables ) {
 		global $wpdb;
 
-		$tables[] = $wpdb->prefix . 'bsearch';
-		$tables[] = $wpdb->prefix . 'bsearch_daily';
+		$tables[] = $wpdb->prefix . self::TABLE_NAME;
+		$tables[] = $wpdb->prefix . self::TABLE_NAME_DAILY;
 
 		return $tables;
 	}

@@ -1,10 +1,10 @@
 === Better Search - Relevant search results for WordPress ===
 Contributors: webberzone, Ajay
-Tags: search, Better Search, related search, relevant search, search results, contextual search, heatmap, popular searches, top searches, relevance
+Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://ajaydsouza.com/donate/
-Stable tag: 3.3.1
-Requires at least: 6.0
-Tested up to: 6.6
+Stable tag: 4.0.0
+Requires at least: 6.3
+Tested up to: 6.7
 Requires PHP: 7.4
 License: GPLv2 or later
 
@@ -27,12 +27,23 @@ Here are some of the main features of **Better Search**:
 * **Relevance**: Sort the results by relevance or date, and assign different weights to title and content
 * **Control the results**: Search within title, content, excerpt, meta fields, authors, tags and other taxonomies and comments
 * **Popular searches**: Show a heatmap of the most popular searches on your site, either as a widget or a shortcode
+* **AJAX Live Search**: Show search results as you type in any search form on your site
 * **Customisation**: Use your own template file and CSS styles for the ultimate look and feel
 * **Supports cache plugins**: Works seamlessly with caching plugins like WP-Super-Cache and W3 Total Cache
 * **Profanity filter**: Filter out any words that you don't want to appear in search queries
 * **Translation ready**: Use the plugin in any language
 
 If you want to take your site search to the next level, download **Better Search** today and see the difference for yourself.
+
+= Features in Better Search Pro =
+
+[__Better Search Pro__](https://webberzone.com/plugins/better-search/pro/) is the premium version of the plugin that offers even more features and functionality. With __Better Search Pro__, you can:
+
+* [__Multisite search__](https://webberzone.com/support/knowledgebase/multisite-search/): Allow network admins to select specific sites for cross-network searches.
+* [__Fuzzy search__](https://webberzone.com/support/knowledgebase/fuzzy-matches/): Find results even if the search term is misspelt.
+* [__Relevance threshold__](https://webberzone.com/support/knowledgebase/better-search-settings-search/#minimum-relevance-percentage-pro-only): Only show search results above a certain relevance threshold.
+* [__Search the post slug__](https://webberzone.com/support/knowledgebase/better-search-settings-search/#search-post-slug-pro-only): Include the post slug in the search results.
+* [__REST API__](https://webberzone.com/support/knowledgebase/better-search-rest-api/): Allow the REST API to utilize the Better Search when enabled.
 
 = mySQL FULLTEXT indices =
 
@@ -82,11 +93,6 @@ Better Search is one of the many plugins developed by WebberZone. Check out our 
 
 4. Goto **Settings > Better Search** to configure
 
-5. Goto **Appearance > Widgets** to add the Popular Searches sidebar widgets to your theme
-
-6. Optionally visit the **Custom Styles** tab to add any custom CSS styles. These are added to `wp_head` on the pages where the posts are displayed
-
-
 == Frequently Asked Questions ==
 
 If your question isn't listed there, please create a new post in the [WordPress.org support forum](https://wordpress.org/support/plugin/better-search). I monitor the forums regularly. If you're looking for more advanced _paid_ support, please see [details here](https://webberzone.com/support/).
@@ -104,66 +110,38 @@ You can turn the filter off by emptying the list.
 
 Know of a better profanity filter? Suggest one in the [forums](https://wordpress.org/support/plugin/better-search).
 
+= How can I report security bugs? =
+
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/better-search)
+
 
 == Changelog ==
 
-= 3.3.1 =
+= 4.0.0 =
 
-* Security fix: Potential Cross Site Scripting (XSS) vulnerability. Thanks to Abdi Pranata for reporting this via Patchstack [https://patchstack.com/](https://patchstack.com/)
-
-= 3.3.0 =
-
-Release post: [https://webberzone.com/better-search-v3-3-0](https://webberzone.com/better-search-v3-3-0)
-
-This is a major release. Complete rewrite of the plugin code - Better Search now uses autoloading and namespaces. Database structure has been changed.
+Release post: [https://webberzone.com/announcements/better-search-v4-enhance-wordpress-search-with-pro-features/](https://webberzone.com/announcements/better-search-v4-enhance-wordpress-search-with-pro-features/)
 
 * Features:
-	* New Admin Dashboard will show the number of searches and the top searches for the day, week, month and all time
+	* New live search feature that shows search results as you type.
+	* [Pro] New setting to enable and set the fuzzy search level. Once enabled, the plugin will attempt to find results if the search term is misspelt. This only works effectively for English words.
+	* [Pro] Multisite search feature allowing network admins to select specific sites for cross-network searches. Sites not selected will function independently.
+	* [Pro] New setting to only show search results above a certain relevance threshold.
+	* [Pro] New setting to search the post slug.
+	* [Pro] New setting *Enable REST API* allows the REST API to utilize the Better Search when enabled. [Read this knowledge base article for more information about how Better Search enhances the Search endpoint](https://webberzone.com/support/knowledgebase/better-search-rest-api/).
 
-* Enhancements:
-	* The tables in the database have been changed for more optimized update queries. The plugin will prompt you to run the upgrade script when you update the plugin
-	* Better Search Tracker doesn't use jQuery anymore
-	* Uninstall now uses `get_sites()` behind the scenes to delete options from all sites in a multisite install
-	* Blank searches will return no results
-	* Better Search tables will only be deleted if you set `BETTER_SEARCH_DELETE_DATA` to true in you wp-config.php file
-
-* Bug fixes:
-	* Banned search filtering didn't work properly in some cases
-
-= 3.2.2 =
-
-* Enhancements:
-	* Use `get_match_sql` instead of `score` in the order by clause
-	* Support `meta_query` argument
-	* New filter: `better_search_query_date_query`
+* Enhancements/Modifications:
+	* Renamed `Better_Search` to `Better_Search_Core_Query`. Each of the methods now removes the filter from itself. It will also automatically parse wp_query parameters.
+	* Updated `Better_Search_Core_Query` filters to use the class instead of `WP_Query`.
+	* Display admin notice if any FULLTEXT index is missing and **Enable mySQL FULLTEXT searching** is enabled. This is only shown to admins and cannot be dismissed until the indexes are created.
+	* Better Search results page now works with Block Templates. You can enable Seamless mode to use your theme's search template.
+	* [Pro] Added a new button to create the indexes and display the index status on the settings page under the **Search tab for Enable mySQL FULLTEXT searching**.
 
 * Bug fixes:
-	* Checkbox in admin page always showed as modified
+	* Quotes in search terms should work correctly now.
 
-= 3.2.1 =
-
-Release post: [https://webberzone.com/blog/better-search-v3-2-0/](https://webberzone.com/blog/better-search-v3-2-0/)
-
-* Bug fixes:
-	* Make stopwords an array by [@ezific](https://github.com/ezific)
-	* Fix bsearch_extract_locations by [@mjsterling](https://github.com/mjsterling)
-
-= 3.2.0 =
-
-* Enhancements/modifications:
-	* Only highlight whole words
-	* Censor character has been modified to be a blank phrase instead of a space. Additionally multiple spaces will be replaced by a single space.
-	* Description of the taxonomy is also searched
-
-* Bug fixes:
-	* mySQL error was generated if there were + signs with banned words in BOOLEAN mode
-	* Fixed `bsearch_form` shortcode incorrect parameters
-	* Queries with apostrophe gave errors
-	* PHP 8.1 compatibility
-	* Security fix when clearing cache
-
+For previous changelog entries, please refer to the separate changelog.txt file or [Github Releases page](https://github.com/WebberZone/better-search/releases)
 
 == Upgrade Notice ==
 
-= 3.3.1 =
-Security fix: Potential Cross Site Scripting (XSS) vulnerability. Please update immediately.
+= 4.0.0 =
+Live AJAX Search, New features, Better Search Pro launched!
