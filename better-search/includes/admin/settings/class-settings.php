@@ -12,6 +12,8 @@ namespace WebberZone\Better_Search\Admin\Settings;
 
 use WebberZone\Better_Search\Util\Helpers;
 
+use function WebberZone\Better_Search\bsearch_freemius;
+
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
 	die;
@@ -636,7 +638,7 @@ class Settings {
 				'name'    => esc_html__( 'Filter whole words only', 'better-search' ),
 				'desc'    => esc_html__( 'When activated, only whole words in the search query are filtered. Partial words are ignored. e.g. grow will not ban grown or grower.', 'better-search' ),
 				'type'    => 'checkbox',
-				'options' => false,
+				'options' => true,
 			),
 			'banned_stop_search'       => array(
 				'id'      => 'banned_stop_search',
@@ -1131,7 +1133,7 @@ class Settings {
 		if ( isset( $args['pro'] ) && $args['pro'] ) {
 			$output .= sprintf(
 				'<a class="bsearch_button bsearch_button_gold" target="_blank" href="%s" title="%s">%s</a>',
-				esc_url( 'https://webberzone.com/plugins/better-search/pro/' ),
+				esc_url( bsearch_freemius()->get_upgrade_url() ),
 				esc_attr__( 'Upgrade to Pro', 'better-search' ),
 				esc_html__( 'Upgrade to Pro', 'better-search' )
 			);
