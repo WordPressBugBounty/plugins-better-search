@@ -7,13 +7,13 @@
  * @author    Ajay D'Souza <me@ajaydsouza.com>
  * @license   GPL-2.0+
  * @link      https://webberzone.com
- * @copyright 2009-2024 Ajay D'Souza
+ * @copyright 2009-2025 Ajay D'Souza
  *
  * @wordpress-plugin
  * Plugin Name: Better Search
  * Plugin URI:  https://webberzone.com/plugins/better-search/
  * Description: Replace the default WordPress search with a contextual search. Search results are sorted by relevancy ensuring a better visitor search experience.
- * Version:     4.0.1
+ * Version:     4.0.2
  * Author:      WebberZone
  * Author URI:  https://webberzone.com/
  * Text Domain: better-search
@@ -91,6 +91,9 @@ if ( ! function_exists( __NAMESPACE__ . '\load_bsearch' ) ) {
 	}
 	add_action( 'plugins_loaded', __NAMESPACE__ . '\load_bsearch' );
 }
+
+// Register the activation hook.
+register_activation_hook( __FILE__, __NAMESPACE__ . '\Admin\Activator::activation_hook' );
 
 /*
  *----------------------------------------------------------------------------
