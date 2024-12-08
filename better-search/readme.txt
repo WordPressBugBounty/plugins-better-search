@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://ajaydsouza.com/donate/
-Stable tag: 4.0.2
+Stable tag: 4.0.3
 Requires at least: 6.3
 Tested up to: 6.7
 Requires PHP: 7.4
@@ -111,9 +111,21 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 4.0.2 =
+= 4.0.3 =
 
 Release post: [https://webberzone.com/announcements/better-search-v4-enhance-wordpress-search-with-pro-features/](https://webberzone.com/announcements/better-search-v4-enhance-wordpress-search-with-pro-features/)
+
+* Modifications:
+	* Added font color (#000) to `.bsearch_highlight` class.
+	* Only highlight words > 2 characters.
+
+* Bug fixes:
+	* Fixed a bug where post titles in search results were not highlighted properly.
+	* Fix for highlighting when Seamless Mode is off.
+	* Words with double or single quotes are properly highlighted.
+	* Quotes are properly displayed in heatmap.
+
+= 4.0.2 =
 
 * Modifications:
 	* Improved search term highlighting in post titles when accessed from the search results page, preventing conflicts with shortcodes calling `the_title` filter.
@@ -160,5 +172,5 @@ For previous changelog entries, please refer to the separate changelog.txt file 
 
 == Upgrade Notice ==
 
-= 4.0.2 =
+= 4.0.3 =
 Bug fixes, Better Search Pro launched!
