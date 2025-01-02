@@ -383,6 +383,8 @@ function get_bsearch_header( $args = array() ) {
 	);
 	$args     = wp_parse_args( $args, $defaults );
 
+	$args['search_query'] = rawurlencode( $args['search_query'] );
+
 	$output = '';
 
 	$current_page = ( $args['paged'] ) ? $args['paged'] : 1;

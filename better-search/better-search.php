@@ -4,7 +4,7 @@
  * with highly relevant search results improving your visitors search experience.
  *
  * @package   Better_Search
- * @author    Ajay D'Souza <me@ajaydsouza.com>
+ * @author    Ajay D'Souza
  * @license   GPL-2.0+
  * @link      https://webberzone.com
  * @copyright 2009-2025 Ajay D'Souza
@@ -13,14 +13,13 @@
  * Plugin Name: Better Search
  * Plugin URI:  https://webberzone.com/plugins/better-search/
  * Description: Replace the default WordPress search with a contextual search. Search results are sorted by relevancy ensuring a better visitor search experience.
- * Version:     4.0.3
+ * Version:     4.0.4
  * Author:      WebberZone
  * Author URI:  https://webberzone.com/
  * Text Domain: better-search
  * License:     GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.txt
  * Domain Path: /languages
- * GitHub Plugin URI: https://github.com/WebberZone/better-search/
  */
 
 namespace WebberZone\Better_Search;
@@ -35,7 +34,7 @@ if ( ! defined( 'BETTER_SEARCH_VERSION' ) ) {
 	 *
 	 * @since 2.9.3
 	 */
-	define( 'BETTER_SEARCH_VERSION', '4.0.0' );
+	define( 'BETTER_SEARCH_VERSION', '4.0.4' );
 }
 
 if ( ! defined( 'BETTER_SEARCH_PLUGIN_DIR' ) ) {
