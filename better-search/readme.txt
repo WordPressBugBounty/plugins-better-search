@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://ajaydsouza.com/donate/
-Stable tag: 4.0.5
+Stable tag: 4.1.0
 Requires at least: 6.3
 Tested up to: 6.7
 Requires PHP: 7.4
@@ -111,6 +111,25 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 4.1.0 =
+
+Release post: [https://webberzone.com/announcements/better-search-v4-1-0/](https://webberzone.com/announcements/better-search-v4-1-0/)
+
+* Features:
+	* Better Search now loads globally and can be accessed using `better_search()`.
+
+* Modifications:
+	* Query improvements for better compatibility with Better Search Pro.
+	* Improved accessibility of live search results particularly better keyboard navigation.
+	* [Pro] Multisite search now respects the settings of each site.
+	* [Pro] Better Fuzzy search compatibility with multisite search.
+	* [Pro] Better compatibility with PolyLang when using Multisite search. However, PolyLang must be set up exactly the same on all sites of the multisite setup.
+
+* Bug fixes:
+	* [Pro] Fixed issues with permalinks and titles not loading properly when Multisite search is enabled.
+	* [Pro] Fixed Multisite search when Seamless Mode is off.
+	* [Pro] Fixed bugs with Fuzzy Search query in some cases.
+
 = 4.0.5 =
 
 * Modifications:
@@ -186,5 +205,5 @@ For previous changelog entries, please refer to the separate changelog.txt file 
 
 == Upgrade Notice ==
 
-= 4.0.5 =
-Updated Freemius SDK to v2.11.0
+= 4.1.0 =
+Multiple enhancements, improvements and bug fixes.
