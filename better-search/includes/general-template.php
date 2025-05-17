@@ -225,10 +225,13 @@ function get_bsearch_form( $search_query = '', $args = array() ) {
 
 	$select = '';
 	if ( ! empty( $post_types ) && $args['show_post_types'] ) {
+		$any_post_type_label = apply_filters( 'bsearch_any_post_type_label', __( 'Any Post Type', 'better-search' ) );
+
 		$select  = '<div class="bsearch-form-post-types">';
 		$select .= '<span class="screen-reader-text">' . _x( 'Post types:', 'label', 'better-search' ) . '</span>';
-		$select .= '<select name="post_types" id="post_types">';
-		$select .= sprintf( '<option value="any">%1$s</option>', __( 'Any Post Type', 'better-search' ) );
+		$select .= '<select name="post_type" id="post_type">';
+		$select .= sprintf( '<option value="any">%1$s</option>', $any_post_type_label );
+
 		foreach ( $post_types as $post_type ) {
 			$post_type = get_post_type_object( $post_type );
 			$select   .= sprintf(
@@ -238,6 +241,7 @@ function get_bsearch_form( $search_query = '', $args = array() ) {
 				selected( true, in_array( $post_type->name, $selected_post_types, true ), false )
 			);
 		}
+
 		$select .= '</select></div>';
 	}
 
@@ -546,6 +550,28 @@ function the_bsearch_score( $args = array() ) {
 	 * @param array  $args   Array of arguments.
 	 */
 	echo apply_filters( 'the_bsearch_score', get_bsearch_score( $args ), $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+/**
+ * Get the relevance score for a post.
+ *
+ * @since 4.1.2
+ *
+ * @param int $post_id Post ID. Default is current post.
+ * @return float Post score or 0 if not available.
+ */
+function bsearch_get_post_score( $post_id = 0 ) {
+	global $wp_query;
+
+	if ( ! $post_id ) {
+		$post_id = get_the_ID();
+	}
+
+	if ( isset( $wp_query->post_scores ) && isset( $wp_query->post_scores[ $post_id ] ) ) {
+		return floatval( $wp_query->post_scores[ $post_id ] );
+	}
+
+	return 0;
 }
 
 /**
