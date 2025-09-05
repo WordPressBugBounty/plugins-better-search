@@ -6,7 +6,6 @@
  * Portions of this code have been inspired by Easy Digital Downloads, WordPress Settings Sandbox, WordPress Settings API class, etc.
  *
  * @link  https://webberzone.com
- * @since 3.3.0
  *
  * @package WebberZone\Better_Search
  */
@@ -21,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Settings API wrapper class
  *
- * @version 2.5.2
+ * @version 2.6.0
  */
 #[\AllowDynamicProperties]
 class Settings_API {
@@ -31,7 +30,7 @@ class Settings_API {
 	 *
 	 * @var   string
 	 */
-	const VERSION = '2.5.2';
+	const VERSION = '2.6.0';
 
 	/**
 	 * Settings Key.
@@ -255,12 +254,12 @@ class Settings_API {
 		// Args prefixed with an underscore are reserved for internal use.
 		$defaults = array(
 			'page_header'          => '',
-			'reset_message'        => __( 'Settings have been reset to their default values. Reload this page to view the updated settings.' ),
-			'success_message'      => __( 'Settings updated.' ),
-			'save_changes'         => __( 'Save Changes' ),
-			'reset_settings'       => __( 'Reset all settings' ),
-			'reset_button_confirm' => __( 'Do you really want to reset all these settings to their default values?' ),
-			'checkbox_modified'    => __( 'Modified from default setting' ),
+			'reset_message'        => 'Settings have been reset to their default values. Reload this page to view the updated settings.',
+			'success_message'      => 'Settings updated.',
+			'save_changes'         => 'Save Changes',
+			'reset_settings'       => 'Reset all settings',
+			'reset_button_confirm' => 'Do you really want to reset all these settings to their default values?',
+			'checkbox_modified'    => 'Modified from default setting',
 		);
 
 		$strings = wp_parse_args( $strings, $defaults );
@@ -487,7 +486,7 @@ class Settings_API {
 		);
 		wp_register_script(
 			'wz-codemirror-js',
-			plugins_url( 'js/apply-codemirror' . $minimize . '.js', __FILE__ ),
+			plugins_url( 'js/apply-cm' . $minimize . '.js', __FILE__ ),
 			array( 'jquery' ),
 			self::VERSION,
 			true
@@ -660,18 +659,33 @@ class Settings_API {
 		// Populate some default values.
 		foreach ( $this->registered_settings as $tab => $settings ) {
 			foreach ( $settings as $option ) {
-				// When checkbox is set to true, set this to 1.
-				if ( 'checkbox' === $option['type'] && ! empty( $option['options'] ) ) {
-					$options[ $option['id'] ] = 1;
-				} else {
-					$options[ $option['id'] ] = 0;
+				/**
+				 * Skip settings that are not really settings.
+				 *
+				 * @param  array $non_setting_types Array of types which are not settings.
+				 */
+				$non_setting_types = apply_filters( $this->prefix . '_non_setting_types', array( 'header', 'descriptive_text' ) );
+
+				if ( in_array( $option['type'], $non_setting_types, true ) ) {
+					continue;
 				}
-				// If an option is set.
-				if ( in_array( $option['type'], array( 'textarea', 'css', 'html', 'text', 'url', 'csv', 'color', 'numbercsv', 'postids', 'posttypes', 'number', 'wysiwyg', 'file', 'password' ), true ) && isset( $option['options'] ) ) {
-					$options[ $option['id'] ] = $option['options'];
-				}
-				if ( in_array( $option['type'], array( 'multicheck', 'radio', 'select', 'radiodesc', 'thumbsizes' ), true ) && isset( $option['default'] ) ) {
+
+				// Base default per type.
+				$options[ $option['id'] ] = ( 'checkbox' === $option['type'] ) ? 0 : '';
+
+				// Prefer the explicit 'default' key when provided.
+				if ( isset( $option['default'] ) ) {
 					$options[ $option['id'] ] = $option['default'];
+				} else {
+					// Back-compat for legacy configs that used 'options' to store default values for text-like fields.
+					if ( in_array( $option['type'], array( 'textarea', 'css', 'html', 'text', 'url', 'csv', 'color', 'numbercsv', 'postids', 'posttypes', 'number', 'wysiwyg', 'file', 'password' ), true ) && isset( $option['options'] ) ) {
+						$options[ $option['id'] ] = $option['options'];
+					}
+
+					// Back-compat: when checkbox used 'options' truthy to indicate checked by default.
+					if ( 'checkbox' === $option['type'] && ! empty( $option['options'] ) ) {
+						$options[ $option['id'] ] = 1;
+					}
 				}
 			}
 		}
@@ -740,7 +754,7 @@ class Settings_API {
 			$this->settings_reset();
 			$settings = get_option( $this->settings_key );
 
-			add_settings_error( $this->prefix . '-notices', '', $this->translation_strings['reset_message'], 'error' );
+			add_settings_error( $this->prefix . '-notices', '', $this->translation_strings['reset_message'], 'warning' );
 
 			return $settings;
 		}
@@ -750,7 +764,7 @@ class Settings_API {
 		$settings_types = $this->get_registered_settings_types();
 
 		// Get the tab. This is also our settings' section.
-		$tab = isset( $referrer['tab'] ) ? $referrer['tab'] : $this->default_tab;
+		$tab = $referrer['tab'] ?? $this->default_tab;
 
 		$input = $input ? $input : array();
 
@@ -759,7 +773,7 @@ class Settings_API {
 		 *
 		 * @param  array $input Input unclean array
 		 */
-		$input = apply_filters( $this->prefix . '_settings_' . $tab . '_sanitize', $input );
+		$input = apply_filters( "{$this->prefix}_settings_{$tab}_sanitize", $input );
 
 		// Create an output array by merging the existing settings with the ones submitted.
 		$output = array_merge( $settings, $input );
