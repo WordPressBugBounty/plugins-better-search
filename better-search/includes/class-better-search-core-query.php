@@ -247,6 +247,14 @@ class Better_Search_Core_Query extends \WP_Query {
 		$search_query = isset( $args['s'] ) ? $args['s'] : '';
 		$this->set_class_variables( $search_query );
 
+		// In seamless mode, check for post_type from URL if not already in args.
+		if ( empty( $args['post_type'] ) ) {
+			$post_type_param = filter_input( INPUT_GET, 'post_type', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			if ( ! empty( $post_type_param ) ) {
+				$args['post_type'] = sanitize_title( wp_unslash( $post_type_param ) );
+			}
+		}
+
 		// Set the number of posts to be retrieved. Use posts_per_page if set else use limit.
 		$args['posts_per_page'] = empty( $args['posts_per_page'] ) ? $args['limit'] : $args['posts_per_page'];
 
@@ -256,37 +264,40 @@ class Better_Search_Core_Query extends \WP_Query {
 		}
 
 		// Set the post types.
-		if ( empty( $args['post_type'] ) ) {
+		// Check if we have post_type (singular) or post_types (plural) parameters.
+		$post_types = array();
 
-			// If post_types is empty or contains a query string then use parse_str else consider it comma-separated.
-			if ( ! empty( $args['post_types'] ) && is_array( $args['post_types'] ) ) {
+		// Handle post_type (singular) - WordPress standard parameter (takes priority).
+		if ( ! empty( $args['post_type'] ) ) {
+			$post_types = is_array( $args['post_type'] ) ? $args['post_type'] : array( $args['post_type'] );
+		} elseif ( ! empty( $args['post_types'] ) ) {
+			if ( is_array( $args['post_types'] ) ) {
 				$post_types = $args['post_types'];
-			} elseif ( ! empty( $args['post_types'] ) && false === strpos( $args['post_types'], '=' ) ) {
+			} elseif ( false === strpos( $args['post_types'], '=' ) ) {
 				$post_types = explode( ',', $args['post_types'] );
 			} else {
 				parse_str( $args['post_types'], $post_types );  // Save post types in $post_types variable.
 			}
-
-			// If post_types is empty or if we want all the post types.
-			if ( empty( $post_types ) || 'all' === $args['post_types'] ) {
-				$post_types = get_post_types(
-					array(
-						'public' => true,
-					)
-				);
-			}
-
-			/**
-			 * Filter the post_types passed to the query.
-			 *
-			 * @since 3.0.0
-			 *
-			 * @param array   $post_types  Array of post types to filter by.
-			 * @param array   $args        Arguments array.
-			 */
-			$args['post_type'] = apply_filters( 'better_search_query_post_types', $post_types, $args );
-
 		}
+
+		// If post_types is empty or if we want all the post types.
+		if ( empty( $post_types ) ) {
+			$post_types = get_post_types(
+				array(
+					'public' => true,
+				)
+			);
+		}
+
+		/**
+		 * Filter the post_types passed to the query.
+		 *
+		 * @since 3.0.0
+		 *
+		 * @param array   $post_types  Array of post types to filter by.
+		 * @param array   $args        Arguments array.
+		 */
+		$args['post_type'] = apply_filters( 'better_search_query_post_types', $post_types, $args );
 
 		// Parse the blog_id argument to get an array of IDs.
 		$this->blog_id = wp_parse_id_list( $args['blog_id'] );
@@ -515,9 +526,10 @@ class Better_Search_Core_Query extends \WP_Query {
 		$search_words = array();
 
 		// Extract the search terms. We respect quotes.
+		$search_query = html_entity_decode( $search_query, ENT_QUOTES ); // Decode HTML entities to preserve quotes.
 		$search_query = stripslashes( $search_query ); // Added slashes screw with quote grouping when done early, so done later.
-		if ( preg_match_all( '/".*?("|$)|((?<=[\t ",+])|^)[^\t ",+]+/', $search_query, $matches ) ) {
-			$search_words = $matches[0];
+		if ( preg_match_all( '/"([^"]*)"|\'([^\']*)\'|[^\s]+/', $search_query, $matches ) ) {
+			$search_words = array_filter( array_map( 'trim', $matches[0] ) );
 		}
 
 		// if search terms are less than min_char then turn fulltext off.
@@ -534,8 +546,8 @@ class Better_Search_Core_Query extends \WP_Query {
 		$this->search_query     = $search_query;
 		$this->search_terms     = $search_words;
 		$this->use_fulltext     = $use_fulltext;
-		$this->is_boolean_mode  = $this->input_query_args['boolean_mode'];
-		$this->is_seamless_mode = $this->input_query_args['seamless'];
+		$this->is_boolean_mode  = $this->input_query_args['boolean_mode'] ?? bsearch_get_option( 'boolean_mode' );
+		$this->is_seamless_mode = $this->input_query_args['seamless'] ?? bsearch_get_option( 'seamless' );
 		$this->should_use_custom_table();
 	}
 
@@ -609,6 +621,10 @@ class Better_Search_Core_Query extends \WP_Query {
 		$weight_content = $args['weight_content'] ?? bsearch_get_option( 'weight_content' );
 		$boolean_mode   = $this->is_boolean_mode ? ' IN BOOLEAN MODE' : '';
 		$search_query   = wp_specialchars_decode( $search_query, ENT_QUOTES );
+		if ( $this->use_fulltext && $this->is_boolean_mode ) {
+			$search_query = preg_replace( '/[<>]/u', ' ', $search_query );
+			$search_query = trim( preg_replace( '/\s+/u', ' ', $search_query ) );
+		}
 
 		$field_score = '';
 
@@ -663,6 +679,7 @@ class Better_Search_Core_Query extends \WP_Query {
 		$_fields[] = "{$wpdb->posts}.ID as ID";
 
 		$score = $this->get_match_sql( $this->search_query, $this->query_args );
+
 		if ( ! empty( $score ) ) {
 			$_fields[] = $score . ' as score';
 		}
