@@ -124,7 +124,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 = 4.2.3 =
 
 * Modifications:
-	* Added WooCommerce product indexing and custom meta field support.
+	* [Pro] Added WooCommerce product indexing and custom meta field support.
 	* Modernized Tom Select implementation for taxonomy and meta key searches.
 	* Enhanced seamless mode logic and form generation.
 	* Improved tracker response handling with better regex patterns.
@@ -193,4 +193,4 @@ For previous changelog entries, please refer to the separate changelog.txt file 
 == Upgrade Notice ==
 
  = 4.2.3 =
-Adds WooCommerce product indexing, modernizes taxonomy search with Tom Select, and enhances seamless mode logic with improved tracker response handling.
+Adds WooCommerce product indexing (Pro only), modernizes taxonomy search with Tom Select, and enhances seamless mode logic with improved tracker response handling.
