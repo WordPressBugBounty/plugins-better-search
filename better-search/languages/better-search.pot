@@ -1,24 +1,46 @@
+# Copyright (C) 2026 WebberZone
+# This file is distributed under the GPL-2.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Better Search\n"
-"Report-Msgid-Bugs-To: \n"
-"Last-Translator: Ajay D'Souza\n"
-"Language-Team: WebberZone\n"
+"Project-Id-Version: Better Search 4.2.4\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/better-search\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2025-10-04 20:07+0400\n"
-"PO-Revision-Date: \n"
-"Language: en_US\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Poedit-KeywordsList: __;_e;__ngettext:1,2;_n:1,2;__ngettext_noop:1,2;_n_noop:1,2;_c,_nc:4c,1,2;_x:1,2c;_nx:4c,1,2;_nx_noop:4c,1,2;_ex:1,2c;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;translate_nooped_plural\n"
-"X-Poedit-Basepath: ..\n"
-"X-Generator: Poedit 3.7\n"
-"X-Poedit-SourceCharset: UTF-8\n"
-"X-Poedit-SearchPath-0: .\n"
-"X-Poedit-SearchPathExcluded-0: vendor\n"
-"X-Poedit-SearchPathExcluded-1: node_modules\n"
-"X-Poedit-SearchPathExcluded-2: freemius\n"
+"POT-Creation-Date: 2026-02-21T09:16:58+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: better-search\n"
+
+#. Plugin Name of the plugin
+#: better-search.php
+#: includes/admin/class-dashboard.php:182
+#: includes/admin/network/class-admin.php:92
+#: includes/frontend/class-template-handler.php:166
+msgid "Better Search"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: better-search.php
+msgid "https://webberzone.com/plugins/better-search/"
+msgstr ""
+
+#. Description of the plugin
+#: better-search.php
+msgid "Replace the default WordPress search with a contextual search. Search results are sorted by relevancy ensuring a better visitor search experience."
+msgstr ""
+
+#. Author of the plugin
+#: better-search.php
+msgid "WebberZone"
+msgstr ""
+
+#. Author URI of the plugin
+#: better-search.php
+msgid "https://webberzone.com/"
+msgstr ""
 
 #. translators: %s: Name of the deactivated plugin
 #: better-search.php:136
@@ -36,6 +58,19 @@ msgstr ""
 
 #: includes/admin/class-admin-notices.php:96
 msgid "Update Database (Network)"
+msgstr ""
+
+#: includes/admin/class-admin-notices.php:167
+msgid "Better Search: Some FULLTEXT indexes are missing from your database, which will prevent search results from being found. Please run the recreate indexes tool from the Tools page to restore search functionality."
+msgstr ""
+
+#: includes/admin/class-admin-notices.php:169
+#: includes/admin/class-admin-notices.php:208
+msgid "Go to Tools page"
+msgstr ""
+
+#: includes/admin/class-admin-notices.php:206
+msgid "Better Search: Some tables are missing, which will affect search results performance. Visit the Tools page to manually recreate the tables."
 msgstr ""
 
 #: includes/admin/class-admin.php:262
@@ -62,10 +97,53 @@ msgstr ""
 msgid "Support the development - Send us a donation today."
 msgstr ""
 
+#: includes/admin/class-admin.php:330
+msgid "Better Search quick links"
+msgstr ""
+
+#: includes/admin/class-admin.php:331
+msgid "Better Search admin shortcuts"
+msgstr ""
+
+#: includes/admin/class-admin.php:332
+msgid "WebberZone Better Search"
+msgstr ""
+
+#: includes/admin/class-admin.php:333
+msgid "Highlight what people search for and act on it faster."
+msgstr ""
+
+#: includes/admin/class-admin.php:334
+msgid "Check stats, chase trends, refresh settings, run maintenance."
+msgstr ""
+
+#: includes/admin/class-admin.php:338
+#: includes/admin/class-dashboard.php:192
+#: includes/admin/class-dashboard.php:483
+msgid "Dashboard"
+msgstr ""
+
 #: includes/admin/class-admin.php:348
 #: includes/admin/class-dashboard-widgets.php:43
 #: includes/admin/class-statistics.php:76
 msgid "Popular Searches"
+msgstr ""
+
+#: includes/admin/class-admin.php:357
+#: includes/admin/class-settings.php:152
+#: includes/admin/class-settings.php:1010
+#: includes/admin/network/class-admin.php:102
+msgid "Settings"
+msgstr ""
+
+#: includes/admin/class-admin.php:363
+#: includes/admin/class-tools-page.php:57
+#: includes/admin/network/class-tools-page.php:53
+msgid "Tools"
+msgstr ""
+
+#: includes/admin/class-admin.php:369
+msgid "WebberZone Plugins"
 msgstr ""
 
 #: includes/admin/class-dashboard-widgets.php:48
@@ -98,20 +176,6 @@ msgstr ""
 
 #: includes/admin/class-dashboard.php:96
 msgid "Historical searches"
-msgstr ""
-
-#. Plugin Name of the plugin
-#: better-search.php
-#: includes/admin/class-dashboard.php:182
-#: includes/admin/network/class-admin.php:92
-#: includes/frontend/class-template-handler.php:166
-msgid "Better Search"
-msgstr ""
-
-#: includes/admin/class-admin.php:338
-#: includes/admin/class-dashboard.php:192
-#: includes/admin/class-dashboard.php:483
-msgid "Dashboard"
 msgstr ""
 
 #: includes/admin/class-dashboard.php:222
@@ -225,10 +289,30 @@ msgstr ""
 msgid "Better Search Setup Wizard"
 msgstr ""
 
+#: includes/admin/class-settings-wizard.php:184
+msgid "Next Step"
+msgstr ""
+
+#: includes/admin/class-settings-wizard.php:185
+msgid "Previous Step"
+msgstr ""
+
+#: includes/admin/class-settings-wizard.php:186
+msgid "Finish Setup"
+msgstr ""
+
+#: includes/admin/class-settings-wizard.php:187
+msgid "Skip Wizard"
+msgstr ""
+
 #. translators: %1$d: Current step number, %2$d: Total number of steps
 #: includes/admin/class-settings-wizard.php:189
 #, php-format
 msgid "Step %1$d of %2$d"
+msgstr ""
+
+#: includes/admin/class-settings-wizard.php:190
+msgid "Setup Wizard Steps"
 msgstr ""
 
 #: includes/admin/class-settings-wizard.php:191
@@ -237,6 +321,17 @@ msgstr ""
 
 #: includes/admin/class-settings-wizard.php:192
 msgid "Better Search has been configured successfully. Your search functionality is now ready to use!"
+msgstr ""
+
+#: includes/admin/class-settings-wizard.php:193
+#: includes/admin/class-settings-wizard.php:578
+msgid "Go to Settings"
+msgstr ""
+
+#. translators: %s: Search query.
+#: includes/admin/class-settings-wizard.php:195
+#, php-format
+msgid "No results found for \"%s\""
 msgstr ""
 
 #: includes/admin/class-settings-wizard.php:231
@@ -332,11 +427,6 @@ msgstr ""
 msgid "Fine-tune settings based on user behavior"
 msgstr ""
 
-#: includes/admin/class-settings-wizard.php:193
-#: includes/admin/class-settings-wizard.php:578
-msgid "Go to Settings"
-msgstr ""
-
 #: includes/admin/class-settings-wizard.php:581
 msgid "View Dashboard"
 msgstr ""
@@ -374,13 +464,6 @@ msgstr ""
 msgid "Modified from default setting"
 msgstr ""
 
-#: includes/admin/class-admin.php:357
-#: includes/admin/class-settings.php:152
-#: includes/admin/class-settings.php:1010
-#: includes/admin/network/class-admin.php:102
-msgid "Settings"
-msgstr ""
-
 #: includes/admin/class-settings.php:168
 #: includes/admin/class-settings.php:1076
 #: includes/admin/class-tools-page.php:593
@@ -396,13 +479,13 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#: includes/admin/class-settings.php:171
+msgid "Output"
+msgstr ""
+
 #: includes/admin/class-settings.php:172
 #: includes/admin/class-settings.php:1090
 msgid "Heatmap"
-msgstr ""
-
-#: includes/admin/class-settings.php:171
-msgid "Output"
 msgstr ""
 
 #: includes/admin/class-settings.php:225
@@ -749,6 +832,10 @@ msgstr ""
 msgid "Exclude Categories"
 msgstr ""
 
+#: includes/admin/class-settings.php:609
+msgid "The field above has an autocomplete. Start typing in the starting letters, and it will prompt you with options. This field requires a specific format as displayed by the autocomplete."
+msgstr ""
+
 #: includes/admin/class-settings.php:618
 msgid "Exclude category IDs"
 msgstr ""
@@ -767,6 +854,22 @@ msgstr ""
 
 #: includes/admin/class-settings.php:633
 msgid "Words in this list will be stripped out of the search results. Enter these as a comma-separated list."
+msgstr ""
+
+#: includes/admin/class-settings.php:639
+msgid "Match whole words only"
+msgstr ""
+
+#: includes/admin/class-settings.php:640
+msgid "When enabled, a banned word must match as a complete word in the search query. When disabled, it can also match inside longer words. Example: if your banned list includes \"grow\", then \"grow\" will be blocked either way, but \"grown\" and \"grower\" will only be blocked when this setting is disabled."
+msgstr ""
+
+#: includes/admin/class-settings.php:646
+msgid "Block searches containing banned words"
+msgstr ""
+
+#: includes/admin/class-settings.php:647
+msgid "When enabled, if the search query contains any banned words, Better Search will stop and return no results. With Seamless mode disabled, an error message will be shown; with Seamless mode enabled, you will typically see a \"Nothing found\" message from your theme."
 msgstr ""
 
 #: includes/admin/class-settings.php:675
@@ -989,6 +1092,10 @@ msgstr ""
 msgid "Are you sure you want to clear the cache?"
 msgstr ""
 
+#: includes/admin/class-settings.php:1153
+msgid "Clearing..."
+msgstr ""
+
 #: includes/admin/class-settings.php:1154
 #: includes/admin/class-tools-page.php:85
 msgid "Cache cleared successfully!"
@@ -1013,6 +1120,11 @@ msgstr ""
 #: includes/admin/class-settings.php:1211
 #: includes/admin/class-settings.php:1212
 msgid "Start Settings Wizard"
+msgstr ""
+
+#: includes/admin/class-settings.php:1249
+msgctxt "tag delimiter"
+msgid ","
 msgstr ""
 
 #: includes/admin/class-statistics-table.php:31
@@ -1079,12 +1191,6 @@ msgstr ""
 #: includes/admin/class-tools-page.php:56
 #: includes/admin/class-tools-page.php:169
 msgid "Better Search Tools"
-msgstr ""
-
-#: includes/admin/class-admin.php:363
-#: includes/admin/class-tools-page.php:57
-#: includes/admin/network/class-tools-page.php:53
-msgid "Tools"
 msgstr ""
 
 #: includes/admin/class-tools-page.php:106
@@ -1593,6 +1699,10 @@ msgstr ""
 msgid "There is no excerpt because this is a protected post."
 msgstr ""
 
+#: includes/general-template.php:221
+msgid "Any"
+msgstr ""
+
 #: includes/general-template.php:235
 msgctxt "label"
 msgid "Post types:"
@@ -1735,120 +1845,4 @@ msgstr ""
 
 #: templates/better-search-template.php:233
 msgid "No results found."
-msgstr ""
-
-#. Plugin URI of the plugin
-#: better-search.php
-msgid "https://webberzone.com/plugins/better-search/"
-msgstr ""
-
-#. Description of the plugin
-#: better-search.php
-msgid "Replace the default WordPress search with a contextual search. Search results are sorted by relevancy ensuring a better visitor search experience."
-msgstr ""
-
-#. Author of the plugin
-#: better-search.php
-msgid "WebberZone"
-msgstr ""
-
-#. Author URI of the plugin
-#: better-search.php
-msgid "https://webberzone.com/"
-msgstr ""
-
-#: includes/admin/class-admin.php:330
-msgid "Better Search quick links"
-msgstr ""
-
-#: includes/admin/class-admin.php:331
-msgid "Better Search admin shortcuts"
-msgstr ""
-
-#: includes/admin/class-admin.php:332
-msgid "WebberZone Better Search"
-msgstr ""
-
-#: includes/admin/class-admin.php:333
-msgid "Highlight what people search for and act on it faster."
-msgstr ""
-
-#: includes/admin/class-admin.php:334
-msgid "Check stats, chase trends, refresh settings, run maintenance."
-msgstr ""
-
-#: includes/admin/class-admin.php:369
-msgid "WebberZone Plugins"
-msgstr ""
-
-#: includes/admin/class-settings.php:609
-msgid "The field above has an autocomplete. Start typing in the starting letters, and it will prompt you with options. This field requires a specific format as displayed by the autocomplete."
-msgstr ""
-
-#: includes/admin/class-settings.php:1249
-msgctxt "tag delimiter"
-msgid ","
-msgstr ""
-
-#: includes/admin/class-settings.php:1153
-msgid "Clearing..."
-msgstr ""
-
-#: includes/admin/class-settings-wizard.php:184
-msgid "Next Step"
-msgstr ""
-
-#: includes/admin/class-settings-wizard.php:185
-msgid "Previous Step"
-msgstr ""
-
-#: includes/admin/class-settings-wizard.php:186
-msgid "Finish Setup"
-msgstr ""
-
-#: includes/admin/class-settings-wizard.php:187
-msgid "Skip Wizard"
-msgstr ""
-
-#: includes/admin/class-settings-wizard.php:190
-msgid "Setup Wizard Steps"
-msgstr ""
-
-#. translators: %s: Search query.
-#: includes/admin/class-settings-wizard.php:195
-#, php-format
-msgid "No results found for \"%s\""
-msgstr ""
-
-#: includes/admin/class-settings.php:639
-msgid "Match whole words only"
-msgstr ""
-
-#: includes/admin/class-settings.php:640
-msgid "When enabled, a banned word must match as a complete word in the search query. When disabled, it can also match inside longer words. Example: if your banned list includes \"grow\", then \"grow\" will be blocked either way, but \"grown\" and \"grower\" will only be blocked when this setting is disabled."
-msgstr ""
-
-#: includes/admin/class-settings.php:646
-msgid "Block searches containing banned words"
-msgstr ""
-
-#: includes/admin/class-settings.php:647
-msgid "When enabled, if the search query contains any banned words, Better Search will stop and return no results. With Seamless mode disabled, an error message will be shown; with Seamless mode enabled, you will typically see a \"Nothing found\" message from your theme."
-msgstr ""
-
-#: includes/general-template.php:221
-msgid "Any"
-msgstr ""
-
-#: includes/admin/class-admin-notices.php:167
-msgid "Better Search: Some FULLTEXT indexes are missing from your database, which will prevent search results from being found. Please run the recreate indexes tool from the Tools page to restore search functionality."
-msgstr ""
-
-#: includes/admin/class-admin-notices.php:169
-#: includes/admin/class-admin-notices.php:208
-msgid "Go to Tools page"
-msgstr ""
-
-#: includes/admin/class-admin-notices.php:206
-msgid "Better Search: Some tables are missing, which will affect search results performance. Visit the Tools page to manually recreate the tables."
 msgstr ""
