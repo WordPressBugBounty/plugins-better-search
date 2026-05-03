@@ -74,9 +74,21 @@ class Admin {
 				'better-search-admin-js',
 				'bsearch_admin_data',
 				array(
-					'ajax_url' => admin_url( 'admin-ajax.php' ),
-					'security' => wp_create_nonce( 'bsearch-admin' ),
+					'ajax_url'             => admin_url( 'admin-ajax.php' ),
+					'security'             => wp_create_nonce( 'bsearch-admin' ),
+					'confirm_message'      => esc_html__( 'Are you sure you want to clear the cache?', 'better-search' ),
+					'fail_message'         => esc_html__( 'Failed to clear cache. Please try again.', 'better-search' ),
+					'request_fail_message' => esc_html__( 'Request failed: ', 'better-search' ),
 				)
+			);
+
+			$suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+			wp_enqueue_script(
+				'better-search-multisite-admin-js',
+				BETTER_SEARCH_PLUGIN_URL . "includes/pro/js/multisite-admin{$suffix}.js",
+				array(),
+				BETTER_SEARCH_VERSION,
+				true
 			);
 		}
 	}
@@ -112,6 +124,14 @@ class Admin {
 	 * @since 4.0.0
 	 */
 	public function render_page() {
+		$main = \WebberZone\Better_Search\Main::get_instance();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading page slug to route rendering in admin context.
+		$current_page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+		if ( 'bsearch_dashboard' === $current_page && $main->pro && $main->pro->network_dashboard ) {
+			$main->pro->network_dashboard->render_page();
+			return;
+		}
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Better Search Pro Multisite Settings', 'better-search' ); ?></h1>
@@ -189,10 +209,12 @@ class Admin {
 		}
 
 		// Redirect or display success notice.
+		// Use bsearch_network_settings if Pro is active (slug changed), fall back to bsearch_dashboard.
+		$settings_page = \WebberZone\Better_Search\bsearch_freemius()->can_use_premium_code() ? 'bsearch_network_settings' : 'bsearch_dashboard';
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'                          => 'bsearch_dashboard',
+					'page'                          => $settings_page,
 					'settings_copied'               => 1,
 					'source_blog_id'                => $source_blog_id,
 					'target_blog_ids'               => implode( ',', array_diff( $target_blog_ids, array( $source_blog_id ) ) ),
@@ -232,18 +254,6 @@ class Admin {
 				$message = __( 'Better Search settings copied successfully.', 'better-search' );
 			}
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
-			?>
-			<script>
-			if (window.history.replaceState) {
-				var url = new URL(window.location.href);
-				url.searchParams.delete('settings_copied');
-				url.searchParams.delete('source_blog_id');
-				url.searchParams.delete('target_blog_ids');
-				url.searchParams.delete('bsearch_settings_copied_nonce');
-				window.history.replaceState({}, document.title, url.pathname + url.search);
-			}
-			</script>
-			<?php
 		}
 	}
 }

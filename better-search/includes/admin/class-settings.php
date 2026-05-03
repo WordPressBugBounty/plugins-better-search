@@ -22,9 +22,10 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Class to register the settings.
  *
- * @since   3.3.0
+ * @since 3.3.0
  */
 class Settings {
+
 
 
 	/**
@@ -305,7 +306,7 @@ class Settings {
 	 */
 	public static function settings_performance() {
 		$custom_tables_desc = sprintf(
-			/* translators: 1: Opening a tag, 2: Closing a tag */
+		/* translators: 1: Opening a tag, 2: Closing a tag */
 			esc_html__( 'Efficient Content Storage and Indexing (ECSI) creates a dedicated database table optimized for related content queries. This enhances performance, particularly on sites with a large number of posts or high traffic. To create the ECSI tables, visit the %1$sTools tab%2$s.', 'better-search' ),
 			'<a href="' . esc_url( admin_url( 'admin.php?page=bsearch_tools_page#bsearch-reindex-custom-tables' ) ) . '" target="_blank">',
 			'</a>'
@@ -453,7 +454,7 @@ class Settings {
 			'fuzzy_search_level'        => array(
 				'id'      => 'fuzzy_search_level',
 				'name'    => esc_html__( 'Fuzzy search level', 'better-search' ),
-				'desc'    => esc_html__( 'This option will allow you to enable fuzzy search. Adjust the level of flexibility for matching search terms. Higher levels may include more results with potential misspellings. Note that fuzzy searching can be computationally intensive, so it is recommended to have caching enabled, especially on high traffic sites.', 'better-search' ),
+				'desc'    => esc_html__( 'This option will allow you to enable fuzzy search. Adjust the level of flexibility for matching search terms. Higher levels may include more results with potential misspellings. Note that fuzzy searching can be computationally intensive, so it is recommended to have caching enabled, especially on high traffic sites. When BOOLEAN mode is active, fuzzy search is automatically disabled for queries containing boolean operators (+, -, ~, >, <, *) as these express explicit search intent.', 'better-search' ),
 				'type'    => 'select',
 				'options' => array(
 					'off'    => esc_html__( 'Off', 'better-search' ),
@@ -595,6 +596,22 @@ class Settings {
 				'desc'    => esc_html__( 'Enabling this option will remove password protected posts from the search results', 'better-search' ),
 				'type'    => 'checkbox',
 				'default' => true,
+			),
+			'exclude_front_page'        => array(
+				'id'      => 'exclude_front_page',
+				'name'    => esc_html__( 'Exclude Front page', 'better-search' ),
+				'desc'    => esc_html__( 'If you have designated a specific page for your Front page via Settings > Reading, enable this option to exclude it from appearing in the search results.', 'better-search' ),
+				'type'    => 'checkbox',
+				'default' => false,
+				'pro'     => true,
+			),
+			'exclude_posts_page'        => array(
+				'id'      => 'exclude_posts_page',
+				'name'    => esc_html__( 'Exclude Posts page', 'better-search' ),
+				'desc'    => esc_html__( 'If you have designated a specific page for your Posts page via Settings > Reading, enable this option to exclude it from appearing in the search results.', 'better-search' ),
+				'type'    => 'checkbox',
+				'default' => false,
+				'pro'     => true,
 			),
 			'exclude_post_ids'          => array(
 				'id'      => 'exclude_post_ids',
@@ -883,7 +900,7 @@ class Settings {
 			'custom_css'               => array(
 				'id'          => 'custom_css',
 				'name'        => esc_html__( 'Custom CSS', 'better-search' ),
-				/* translators: 1: Opening a tag, 2: Closing a tag, 3: Opening code tage, 4. Closing code tag. */
+				/* translators: 1: Opening a tag, 2: Closing a tag, 3: Opening code tag, 4: Closing code tag. */
 				'desc'        => sprintf( esc_html__( 'Do not include %3$sstyle%4$s tags. Check out the %1$sFAQ%2$s for available CSS classes to style.', 'better-search' ), '<a href="' . esc_url( 'https://wordpress.org/plugins/better-search/faq/' ) . '" target="_blank">', '</a>', '<code>', '</code>' ),
 				'type'        => 'css',
 				'default'     => '',
@@ -1000,7 +1017,7 @@ class Settings {
 	 *
 	 * @since 3.3.0
 	 *
-	 * @param array $links Array of links.
+	 * @param  array $links Array of links.
 	 * @return array
 	 */
 	public function plugin_actions_links( $links ) {
@@ -1018,8 +1035,8 @@ class Settings {
 	 *
 	 * @since 3.3.0
 	 *
-	 * @param array  $links Array of Links.
-	 * @param string $file Current file.
+	 * @param  array  $links Array of Links.
+	 * @param  string $file  Current file.
 	 * @return array
 	 */
 	public function plugin_row_meta( $links, $file ) {
@@ -1043,16 +1060,16 @@ class Settings {
 	 */
 	public function get_help_sidebar() {
 		$help_sidebar =
-			/* translators: 1: Plugin support site link. */
-			'<p>' . sprintf( __( 'For more information or how to get support visit the <a href="%s">support site</a>.', 'better-search' ), esc_url( 'https://webberzone.com/support/' ) ) . '</p>' .
-			/* translators: 1: WordPress.org support forums link. */
-			'<p>' . sprintf( __( 'Support queries should be posted in the <a href="%s">WordPress.org support forums</a>.', 'better-search' ), esc_url( 'https://wordpress.org/support/plugin/better-search' ) ) . '</p>' .
-			'<p>' . sprintf(
-				/* translators: 1: Github issues link, 2: Github plugin page link. */
-				__( '<a href="%1$s">Post an issue</a> on <a href="%2$s">GitHub</a> (bug reports only).', 'better-search' ),
-				esc_url( 'https://github.com/WebberZone/better-search/issues' ),
-				esc_url( 'https://github.com/WebberZone/better-search' )
-			) . '</p>';
+		/* translators: 1: Plugin support site link. */
+		'<p>' . sprintf( __( 'For more information or how to get support visit the <a href="%s">support site</a>.', 'better-search' ), esc_url( 'https://webberzone.com/support/' ) ) . '</p>' .
+		/* translators: 1: WordPress.org support forums link. */
+		'<p>' . sprintf( __( 'Support queries should be posted in the <a href="%s">WordPress.org support forums</a>.', 'better-search' ), esc_url( 'https://wordpress.org/support/plugin/better-search' ) ) . '</p>' .
+		'<p>' . sprintf(
+		/* translators: 1: Github issues link, 2: Github plugin page link. */
+			__( '<a href="%1$s">Post an issue</a> on <a href="%2$s">GitHub</a> (bug reports only).', 'better-search' ),
+			esc_url( 'https://github.com/WebberZone/better-search/issues' ),
+			esc_url( 'https://github.com/WebberZone/better-search' )
+		) . '</p>';
 
 		/**
 		 * Filter to modify the help sidebar content.
@@ -1083,21 +1100,21 @@ class Settings {
 				'title'   => __( 'Search', 'better-search' ),
 				'content' =>
 				'<p>' . __( 'This screen provides settings to tweak the search algorithm.', 'better-search' ) . '</p>' .
-					'<p>' . __( 'Configure number of search results, enable FULLTEXT and BOOLEAN mode, tweak the weight of title and content and block words.', 'better-search' ) . '</p>',
+							'<p>' . __( 'Configure number of search results, enable FULLTEXT and BOOLEAN mode, tweak the weight of title and content and block words.', 'better-search' ) . '</p>',
 			),
 			array(
 				'id'      => 'bsearch-settings-heatmap',
 				'title'   => __( 'Heatmap', 'better-search' ),
 				'content' =>
 				'<p>' . __( 'This screen provides settings to tweak the output of the search heatmap to display popular searches.', 'better-search' ) . '</p>' .
-					'<p>' . __( 'Configure title of the searches, period of trending searches, color and font sizes of the heatmap.', 'better-search' ) . '</p>',
+							'<p>' . __( 'Configure title of the searches, period of trending searches, color and font sizes of the heatmap.', 'better-search' ) . '</p>',
 			),
 			array(
 				'id'      => 'bsearch-settings-styles',
 				'title'   => __( 'Styles', 'better-search' ),
 				'content' =>
 				'<p>' . __( 'This screen provides options to control the look and feel of the search page.', 'better-search' ) . '</p>' .
-					'<p>' . __( 'Choose for default set of styles or add your own custom CSS to tweak the display of the search results page.', 'better-search' ) . '</p>',
+							'<p>' . __( 'Choose for default set of styles or add your own custom CSS to tweak the display of the search results page.', 'better-search' ) . '</p>',
 			),
 		);
 
@@ -1119,7 +1136,7 @@ class Settings {
 	 */
 	public static function get_admin_footer_text() {
 		return sprintf(
-			/* translators: 1: Opening achor tag with Plugin page link, 2: Closing anchor tag, 3: Opening anchor tag with review link. */
+		/* translators: 1: Opening achor tag with Plugin page link, 2: Closing anchor tag, 3: Opening anchor tag with review link. */
 			__( 'Thank you for using %1$sWebberZone Better_Search%2$s! Please %3$srate us%2$s on %3$sWordPress.org%2$s', 'better-search' ),
 			'<a href="https://webberzone.com/plugins/better-search/" target="_blank">',
 			'</a>',
@@ -1181,8 +1198,8 @@ class Settings {
 	/**
 	 * Updated the settings fields to display a pro version link.
 	 *
-	 * @param string $output Settings field HTML.
-	 * @param array  $args   Settings field arguments.
+	 * @param  string $output Settings field HTML.
+	 * @param  array  $args   Settings field arguments.
 	 * @return string Updated HTML.
 	 */
 	public static function after_setting_output( $output, $args ) {
@@ -1295,13 +1312,15 @@ class Settings {
 			}
 		}
 
-		/** This filter has been defined in /wp-admin/includes/ajax-actions.php */
+		/**
+	* This filter has been defined in /wp-admin/includes/ajax-actions.php
+*/
 		$term_search_min_chars = (int) apply_filters( 'term_search_min_chars', 2, $tax, $search_term );
 
 		/*
-		 * Require $term_search_min_chars chars for matching (default: 2)
-		 * ensure it's a non-negative, non-zero integer.
-		 */
+		* Require $term_search_min_chars chars for matching (default: 2)
+		* ensure it's a non-negative, non-zero integer.
+		*/
 		if ( ( 0 === $term_search_min_chars ) || ( strlen( $search_term ) < $term_search_min_chars ) ) {
 			wp_send_json_success( array() );
 		}
@@ -1331,8 +1350,8 @@ class Settings {
 	 *
 	 * @since 4.2.0
 	 *
-	 * @param string $taxonomy  The taxonomy to search.
-	 * @param array  $ts_config Optional Tom Select configuration.
+	 * @param  string $taxonomy  The taxonomy to search.
+	 * @param  array  $ts_config Optional Tom Select configuration.
 	 * @return array Field attributes array.
 	 */
 	private static function get_taxonomy_search_field_attributes( $taxonomy, $ts_config = array() ) {
@@ -1355,7 +1374,7 @@ class Settings {
 	 *
 	 * @since 4.2.0
 	 *
-	 * @param array $ts_config Optional Tom Select configuration.
+	 * @param  array $ts_config Optional Tom Select configuration.
 	 * @return array Field attributes array.
 	 */
 	private static function get_meta_keys_search_field_attributes( $ts_config = array() ) {

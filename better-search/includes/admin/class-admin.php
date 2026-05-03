@@ -317,7 +317,7 @@ class Admin {
 	 *
 	 * @return array<string, mixed>
 	 */
-	private function get_admin_banner_config(): array {
+	protected function get_admin_banner_config(): array {
 		$dashboard_url = admin_url( 'admin.php?page=bsearch_dashboard' );
 		$popular_url   = admin_url( 'admin.php?page=bsearch_popular_searches' );
 		$settings_url  = admin_url( 'admin.php?page=bsearch_options_page' );
@@ -341,6 +341,7 @@ class Admin {
 					'screen_ids' => array(
 						'toplevel_page_bsearch_dashboard',
 						'better-search_page_bsearch_dashboard',
+						'bsearch_dashboard_page_bsearch_dashboard',
 					),
 					'page_slugs' => array( 'bsearch_dashboard' ),
 				),

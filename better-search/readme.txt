@@ -2,9 +2,9 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.2.4
+Stable tag: 4.3.0
 Requires at least: 6.6
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
 License: GPLv2 or later
 
@@ -20,7 +20,7 @@ Make your search more intuitive and engaging with a search heatmap of popular qu
 
 Built with performance in mind, Better Search includes its own caching system and works smoothly with popular caching plugins like WP Super Cache and W3 Total Cache. It also features a profanity filter and is translation-ready for global use.
 
-Here are some of the main features of __Better Search__:
+## Awesome features in Better Search:
 
 * __Automatic__: Just activate the plugin and enjoy better search results right away
 * __Seamless integration__: No need to edit any code or create custom search templates
@@ -39,11 +39,14 @@ If you want to improve your site search, download Better Search today and experi
 
 [__Better Search Pro__](https://webberzone.com/plugins/better-search/pro/) gives you even more control and performance:
 
+* 🗄️ [Efficient Content Storage and Indexing](https://webberzone.com/support/knowledgebase/efficient-content-storage-and-indexing/)
 * 🔍 [Multisite Search](https://webberzone.com/support/knowledgebase/multisite-search/)
 * ✨ [Fuzzy Matches](https://webberzone.com/support/knowledgebase/fuzzy-matches/)
 * 🎯 [Relevance Threshold](https://webberzone.com/support/knowledgebase/better-search-settings-search/#minimum-relevance-percentage-pro-only)
 * 🔗 [Search Post Slugs](https://webberzone.com/support/knowledgebase/better-search-settings-search/#search-post-slug-pro-only)
 * ⚙️ [REST API Integration](https://webberzone.com/support/knowledgebase/better-search-rest-api/)
+* 🔄 [LIKE Fallback Search](https://webberzone.com/support/knowledgebase/better-search-settings-search/#enable-like-fallback-pro-only)
+* ⚖️ [Advanced Relevance Weighting](https://webberzone.com/support/knowledgebase/better-search-settings-search/#post-excerpt-pro-only)
 
 ## MySQL FULLTEXT indices
 
@@ -64,6 +67,7 @@ Better Search is also available on [Github](https://github.com/WebberZone/better
 Better Search is one of the many plugins developed by WebberZone. Check out our other plugins:
 
 * [Contextual Related Posts](https://wordpress.org/plugins/contextual-related-posts/) - Display related posts on your WordPress blog and feed
+* [WebberZone Link Warnings](https://wordpress.org/plugins/webberzone-link-warnings/) - Add accessible warnings for external links and target="_blank" links
 * [Top 10](https://wordpress.org/plugins/top-10/) - Track daily and total visits to your blog posts and display the popular and trending posts
 * [Knowledge Base](https://wordpress.org/plugins/knowledgebase/) - Create a knowledge base or FAQ section on your WordPress site
 * [WebberZone Snippetz](https://wordpress.org/plugins/add-to-all/) - The ultimate snippet manager for WordPress to create and manage custom HTML, CSS or JS code snippets
@@ -121,88 +125,51 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 4.2.4 =
+= 4.3.0 =
+
+*Release Date - 3 May 2026*
+
+Read more in the [Better Search Pro 4.3.0 release post](https://webberzone.com/announcements/better-search-pro-v4-3-0/).
 
 * Features:
-	* Better Search form: The "any" post type option label can now be customised when the post type dropdown is enabled.
+	* [Pro] New: WP-CLI support with comprehensive command-line interface (search, cache, db, stats, settings, tables, status, stopwords commands).
+	* [Pro] Dashboard chart drill-down: click any bar in the daily searches chart to view the popular searches for that day.
+	* [Pro] New InnoDB conversion tool: convert the custom table engine with automatic FULLTEXT index recreation.
+	* [Pro] Scheduled reconciliation cron: a twicedaily job automatically syncs any published posts missing from the custom search index table.
+	* [Pro] New exclusion options: Exclude Front page and Exclude Posts page settings to optionally remove these pages from search results.
+	* [Pro] Network dashboard with popular searches chart and statistics table for multisite networks, accessible from the network admin menu.
 
-* Fixed:
-	* Fixed an issue where selecting "any" post type would search through all post types instead of respecting the configured post types from settings.
-	* [Pro] Custom table searches now include post slug matching when “Search post slug” is enabled.
-    * [Pro] Fixed SQL syntax error in multisite search queries when custom tables are disabled, caused by malformed GROUP BY clause stripping.
-    * Fixed improper stripping of boolean mode operators in LIKE clauses, ensuring consistent behavior between FULLTEXT and LIKE searches.
-
-= 4.2.3 =
-
-* Modifications:
-	* [Pro] Added WooCommerce product indexing and custom meta field support.
-	* Modernized Tom Select implementation for taxonomy and meta key searches.
-	* Enhanced seamless mode logic and form generation.
-	* Improved tracker response handling with better regex patterns.
-	* Standardized Hook_Registry validation across WebberZone plugins.
-
-* Fixed:
-	* Some users would see no search results when seamless mode is off.
-
-= 4.2.2 =
-
-* Modifications:
-	* Updated Freemius SDK to v2.13.0.
-	* Upgraded Settings API.
-	* Improved text highlighting.
-	* The Settings screen's "Create Fuzzy Search Indexes" button now deletes and recreates the Fuzzy Search functions.
-	* The Cache key is now created by eliminating unnecessary variations to improve cache efficiency.
-	* New WebberZone Admin banner on Better Search admin screens for quick access to admin pages.
+* Enhancements:
+	* [Pro] Multisite admin select-all checkboxes and post-copy URL cleanup are now handled by an external JavaScript file (via `wp_enqueue_script`) instead of inline `<script>` blocks — improves compatibility with strict Content Security Policies.
+	* [Pro] Copy-to-clipboard buttons on the tools and custom tables pages are now initialized automatically; no per-block inline script needed.
+	* [Pro] Improved short-term (≤3 character) LIKE searches to score full-word matches higher and order results by relevance.
+	* [Pro] Refactored fuzzy query shaping so `Query_Modifier` owns score construction and request shaping, with `Fuzzy_Search` acting as the fuzzy scoring service.
+	* [Pro] Rewrote soundex function, removed multisite LIMIT cap, and added content scoring for fuzzy search.
+	* [Pro] Added filters for fuzzy search truncation parameters.
+	* [Pro] Centralized exclusion term parsing logic in Helpers class.
+	* [Pro] Custom tables search now supports a FULLTEXT toggle, with improved LIKE-only relevance scoring when FULLTEXT is disabled.
+	* [Pro] Improved multisite search query composition: correctly unwraps fuzzy subqueries before UNION assembly and strips only top-level ORDER BY clauses, preventing malformed SQL.
+	* [Pro] LIKE term matching in custom tables search now uses an EXISTS subquery to avoid unbounded JOINs when the terms table is not already in scope.
+	* [Pro] Database check results are now cached within a request, reducing redundant `SHOW TABLES` queries on pages that check table status multiple times.
+	* [Pro] Dashboard popular searches query result is now cached within a request to avoid repeated database hits.
+	* Refactored Media Handler with a strategy-based thumbnail resolution chain; now also supports ACF Image fields (Image Array, Image ID, Image URL) and plain text URL fields.
+	* Hardened search sanitization and boolean mode validation for more consistent results.
+	* Escaped output in settings forms for improved security.
 
 * Bug fixes:
-	* Fixed an issue where the setup wizard notice could display on the wizard page.
-	* Fixed parsing of excluded category slugs.
-	* Fixed a translation string in the settings form.
-	* Fixed handling of `<` and `>` in boolean search mode.
-	* Fixed Boolean mode didn't work in some cases even when enabled in the Settings page.
-
-* Security:
-	* Fixed a stored XSS vulnerability.
-
-= 4.2.1  =
-
-* Modifications:
-	* Updated Freemius SDK.
-	* Handle `post_type` when passed through as a query variable.
-	* Added REST API support for custom post type search queries.
-
-* Bug fixes:
-	* HTML entities are now decoded in the Live Search results.
-	* Phrases with double quotes are correctly handled.
-
-= 4.2.0 =
-
-Release post: [https://webberzone.com/announcements/better-search-v4-2-0/](https://webberzone.com/announcements/better-search-v4-2-0/)
-
-* Features:
-	* [Pro] New: Efficient Content Storage and Indexing – Custom tables implementation for better performance and query optimization while maintaining the same relevance algorithm.
-	* [Pro] New: MAX_EXECUTION_TIME hint for MySQL queries.
-	* [Pro] New: LIKE fallback search.
-	* New: Wizard to guide users through the setup process.
-	* Copy to clipboard functionality for SQL queries in the Tools page.
-
-* Modifications:
-	* Improved caching in Core Query to catch score and blog ID.
-	* New function: bsearch_get_blog_option() to get a Better Search option for a specific blog.
-	* New network settings/tools page.
-	* [Pro] A new button to fix any collation issues has been added to the Network Admin Settings page.
-	* Updated Freemius SDK.
-	* Live search displays a loading state while results are being fetched.
-	* Fulltext indexes are now named `wz_title_content`, `wz_title`, and `wz_content` to ensure compatibility and optimize database space, especially when using Contextual Related Posts. After updating to this version, please recreate the indexes to benefit from the changes—until then, the plugin will use the previous index names.
-	* Media Handler now supports the FIFU WordPress plugin for featured image detection.
-
-* Bug fix:
-	* Fixed an issue where the Live Search conflicted with Mega Menu Pro.
-	* Fixed an issue where activating the Pro plugin while the Free plugin was active, or vice versa, would cause a fatal error.
+	* [Pro] Fixed localized admin script data keys: removed erroneous `.strings.` nesting that caused the cache-clear confirmation and error dialogs to display `undefined`.
+	* Fixed spinner alignment inside action buttons (now displays inline rather than floating).
+	* [Pro] Fixed fuzzy LIKE query SQL issues that could generate duplicate `ID` fields in wrapped sub-queries.
+	* [Pro] Fixed fuzzy search bypassing FULLTEXT exclusions.
+	* [Pro] Fixed inconsistent indentation and table alias qualification in multisite query composition.
+	* [Pro] Disabled fuzzy search when boolean operators are present to prevent conflicts.
+	* Fixed duplicate search query being executed on every non-seamless search page load.
+	* Fixed relevance percentages on paginated search results by stabilizing topscore handling across pages, while reducing unnecessary topscore queries when minimum relevance filtering is not in use.
+	* Fixed placeholder attribute escaping in text field rendering.
 
 For previous changelog entries, please refer to the separate changelog.txt file or [Github Releases page](https://github.com/WebberZone/better-search/releases)
 
 == Upgrade Notice ==
 
- = 4.2.4 =
-Fixes post type selection to respect configured settings when "any" is selected.
+= 4.3.0 =
+Adds WP-CLI support, dashboard chart drill-down, an InnoDB conversion tool, scheduled index reconciliation, and a network admin dashboard for multisite. Includes a fuzzy search refactor and a long list of stability fixes.

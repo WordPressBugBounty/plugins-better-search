@@ -728,7 +728,9 @@ class Better_Search_Core_Query extends \WP_Query {
 		if ( $this->is_better_search( $query ) ) {
 
 			// Check for duplicate joins to prevent adding the same join multiple times.
-			if ( false === strpos( $join, 'bsq_tr' ) && ! empty( $this->query_args['search_taxonomies'] ) ) {
+			// In FULLTEXT mode the taxonomy WHERE clause uses a correlated EXISTS subquery instead
+			// of a JOIN, so no aliases are needed here. The JOIN is only added for non-FULLTEXT mode.
+			if ( false === strpos( $join, 'bsq_tr' ) && ! empty( $this->query_args['search_taxonomies'] ) && ! $this->use_fulltext ) {
 				$join .= " LEFT JOIN $wpdb->term_relationships AS bsq_tr ON ($wpdb->posts.ID = bsq_tr.object_id) ";
 				$join .= " LEFT JOIN $wpdb->term_taxonomy AS bsq_tt ON (bsq_tr.term_taxonomy_id = bsq_tt.term_taxonomy_id) ";
 				$join .= " LEFT JOIN $wpdb->terms AS bsq_t ON (bsq_t.term_id = bsq_tt.term_id) ";
@@ -848,14 +850,21 @@ class Better_Search_Core_Query extends \WP_Query {
 			}
 
 			foreach ( (array) $search_terms as $term ) {
+				// If there is an $exclusion_prefix, terms prefixed with it should be excluded.
+				// Check BEFORE stripping operators so the prefix is still present.
+				$exclude = $exclusion_prefix && ( substr( $term, 0, 1 ) === $exclusion_prefix );
+				if ( $exclude ) {
+					$term = substr( $term, strlen( $exclusion_prefix ) );
+				}
 				$term = preg_replace( '/[+\-*"~<>()@\']/', '', $term );
 
-				// If there is an $exclusion_prefix, terms prefixed with it should be excluded.
-				$exclude = $exclusion_prefix && ( substr( $term, 0, 1 ) === $exclusion_prefix );
+				if ( '' === $term ) {
+					continue;
+				}
+
 				if ( $exclude ) {
 					$like_op  = 'NOT LIKE';
 					$andor_op = 'AND';
-					$term     = substr( $term, 1 );
 				} else {
 					$like_op  = 'LIKE';
 					$andor_op = 'OR';
@@ -884,17 +893,25 @@ class Better_Search_Core_Query extends \WP_Query {
 		}
 
 		// Let's do a LIKE search for all other fields.
-		$searchand = '';
+		$searchand        = '';
+		$negative_clauses = array();
 		foreach ( (array) $search_terms as $term ) {
-			$term   = preg_replace( '/[+\-*"~<>()@\']/', '', $term );
+			// Check exclusion BEFORE stripping operators so the prefix is still present.
+			$exclude = $exclusion_prefix && ( substr( $term, 0, 1 ) === $exclusion_prefix );
+			if ( $exclude ) {
+				$term = substr( $term, strlen( $exclusion_prefix ) );
+			}
+			$term = preg_replace( '/[+\-*"~<>()@\']/', '', $term );
+
+			if ( '' === $term ) {
+				continue;
+			}
+
 			$clause = array();
 
-			// If there is an $exclusion_prefix, terms prefixed with it should be excluded.
-			$exclude = $exclusion_prefix && ( substr( $term, 0, 1 ) === $exclusion_prefix );
 			if ( $exclude ) {
 				$like_op  = 'NOT LIKE';
 				$andor_op = ' AND ';
-				$term     = substr( $term, 1 );
 			} else {
 				$like_op  = 'LIKE';
 				$andor_op = ' OR ';
@@ -903,8 +920,30 @@ class Better_Search_Core_Query extends \WP_Query {
 			$term = $n . $wpdb->esc_like( $term ) . $n;
 
 			if ( ! empty( $this->query_args['search_taxonomies'] ) ) {
-				$clause[] = $wpdb->prepare( "(bsq_t.name $like_op %s)", $term ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$clause[] = $wpdb->prepare( "(bsq_tt.description $like_op %s)", $term ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				if ( $this->use_fulltext ) {
+					// In FULLTEXT mode use a correlated EXISTS subquery instead of a JOIN.
+					// A JOIN multiplies rows (one per taxonomy term per post) and LIKE '%number%'
+					// on term names can match thousands of rows, causing execution-time timeouts.
+					// EXISTS checks only the terms belonging to each candidate post and
+					// short-circuits on the first match, so row count stays bounded.
+					$exists_op = ( 'NOT LIKE' === $like_op ) ? 'NOT EXISTS' : 'EXISTS';
+					$clause[]  = $wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						"{$exists_op} (
+							SELECT 1
+							FROM {$wpdb->term_relationships} AS bsq_sub_tr
+							INNER JOIN {$wpdb->term_taxonomy} AS bsq_sub_tt ON bsq_sub_tr.term_taxonomy_id = bsq_sub_tt.term_taxonomy_id
+							INNER JOIN {$wpdb->terms} AS bsq_sub_t ON bsq_sub_t.term_id = bsq_sub_tt.term_id
+							WHERE bsq_sub_tr.object_id = {$wpdb->posts}.ID
+							AND (bsq_sub_t.name LIKE %s OR bsq_sub_tt.description LIKE %s)
+						)",
+						$term,
+						$term
+					);
+				} else {
+					$clause[] = $wpdb->prepare( "(bsq_t.name $like_op %s)", $term ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$clause[] = $wpdb->prepare( "(bsq_tt.description $like_op %s)", $term ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				}
 			}
 
 			if ( ! empty( $this->query_args['search_excerpt'] ) ) {
@@ -939,13 +978,26 @@ class Better_Search_Core_Query extends \WP_Query {
 			$clause = apply_filters_ref_array( 'better_search_query_posts_search_clauses', array( $clause, $term, $like_op, $andor_op, $query, &$this ) );
 
 			if ( ! empty( $clause ) ) {
-				$search_clause .= " {$searchand} (" . implode( $andor_op, (array) $clause ) . ') ';
-				$searchand      = ' AND ';
+				if ( $exclude ) {
+					$negative_clauses[] = '(' . implode( $andor_op, (array) $clause ) . ')';
+				} else {
+					$search_clause .= " {$searchand} (" . implode( $andor_op, (array) $clause ) . ') ';
+					$searchand      = ' AND ';
+				}
 			}
 		}
 
 		if ( ! empty( $search_clause ) ) {
 			$search .= " OR ({$search_clause}) ";
+		}
+
+		if ( ! empty( $negative_clauses ) ) {
+			// Wrap the entire positive expression before appending negations, so that
+			// SQL AND-before-OR precedence does not let the FULLTEXT branch bypass the
+			// exclusion clauses (e.g. "-tiger" failing to exclude posts that pass FULLTEXT).
+			// When there are no positive terms, use 1=1 as a neutral base to avoid malformed SQL.
+			$search  = ! empty( $search ) ? '(' . $search . ')' : '1=1';
+			$search .= ' AND ' . implode( ' AND ', $negative_clauses );
 		}
 
 		if ( ! empty( $search ) ) {
@@ -1025,10 +1077,33 @@ class Better_Search_Core_Query extends \WP_Query {
 
 		// If orderby is set, then this was done intentionally and we don't make any modifications.
 		if ( ! empty( $query->get( 'orderby' ) ) ) {
+			$orderby_clauses = array();
+
 			// if orderby is set to relevance, then we need to set the orderby to the match clause.
 			if ( ( 'relevance' === $query->get( 'orderby' ) || 'relatedness' === $query->get( 'orderby' ) ) && ! empty( $this->match_sql ) && $this->use_fulltext ) {
 				$orderby = ' score DESC ';
 			}
+
+			if ( ! empty( $orderby ) ) {
+				$orderby_clauses[] = $orderby;
+			}
+
+			/**
+			 * Filters the posts_orderby clauses of Better_Search before combining.
+			 *
+			 * @since 4.0.0
+			 * @since 4.2.0 Added $instance parameter.
+			 *
+			 * @param string[]                 $orderby_clauses The ORDER BY clauses of the query.
+			 * @param \WP_Query                $query           The WP_Query instance.
+			 * @param Better_Search_Core_Query $instance        The Better_Search_Core_Query instance (passed by reference).
+			 */
+			$orderby_clauses = apply_filters_ref_array( 'better_search_query_posts_orderby_clauses', array( $orderby_clauses, $query, &$this ) );
+
+			if ( ! empty( $orderby_clauses ) ) {
+				$orderby = implode( ', ', $orderby_clauses );
+			}
+
 			/**
 			 * Filters the ORDER BY clause of the Better_Search.
 			 *
@@ -1039,7 +1114,12 @@ class Better_Search_Core_Query extends \WP_Query {
 			 * @param \WP_Query                $query    The WP_Query instance.
 			 * @param Better_Search_Core_Query $instance The Better_Search_Core_Query instance (passed by reference).
 			 */
-			return apply_filters_ref_array( 'better_search_query_posts_orderby', array( $orderby, $query, &$this ) );
+			$orderby = apply_filters_ref_array( 'better_search_query_posts_orderby', array( $orderby, $query, &$this ) );
+
+			// Always remove the filter after use, even on early-return paths.
+			Hook_Registry::remove_filter( 'posts_orderby', array( $this, 'posts_orderby' ) );
+
+			return $orderby;
 		}
 
 		// Initialize an array to build the orderby clauses.
@@ -1220,23 +1300,29 @@ class Better_Search_Core_Query extends \WP_Query {
 				);
 				// Set the score and blog_id for each of the posts.
 				if ( $posts ) {
+					$current_blog_id = get_current_blog_id();
 					foreach ( $posts as $post ) {
+						if ( ! $post instanceof \WP_Post ) {
+							continue;
+						}
 						if ( isset( $cached_data[ $post->ID ] ) ) {
 							if ( is_array( $cached_data[ $post->ID ] ) ) {
-								$post->score   = isset( $cached_data[ $post->ID ]['score'] ) ? $cached_data[ $post->ID ]['score'] : 0;
-								$post->blog_id = isset( $cached_data[ $post->ID ]['blog_id'] ) ? $cached_data[ $post->ID ]['blog_id'] : get_current_blog_id();
+								$post->score   = $cached_data[ $post->ID ]['score'] ?? 0;
+								$post->blog_id = $cached_data[ $post->ID ]['blog_id'] ?? $current_blog_id;
 							} else {
 								$post->score   = $cached_data[ $post->ID ];
-								$post->blog_id = get_current_blog_id();
+								$post->blog_id = $current_blog_id;
 							}
 						} else {
 							$post->score   = 0;
-							$post->blog_id = get_current_blog_id();
+							$post->blog_id = $current_blog_id;
 						}
 					}
 				}
 				$query->found_posts   = isset( $cached_data['found_posts'] ) ? $cached_data['found_posts'] : count( $posts );
 				$query->max_num_pages = intval( ceil( $query->found_posts / $query->get( 'posts_per_page' ) ) );
+				$query->topscore      = isset( $cached_data['topscore'] ) ? (float) $cached_data['topscore'] : 0;
+				$this->topscore       = $query->topscore;
 				$this->in_cache       = true;
 			}
 		}
@@ -1281,6 +1367,23 @@ class Better_Search_Core_Query extends \WP_Query {
 			}
 		}
 
+		// Derive topscore from page-1 scores for relevance ordering.
+		$orderby              = $query->get( 'orderby' );
+		$is_relevance_ordered = empty( $orderby ) || in_array( $orderby, array( 'relevance', 'relatedness' ), true );
+		$paged                = max( 1, (int) $query->get( 'paged' ) );
+
+		if ( empty( $this->topscore ) && $is_relevance_ordered && 1 === $paged && ! empty( $query->post_scores ) ) {
+			$this->topscore  = (float) max( $query->post_scores );
+			$query->topscore = $this->topscore;
+
+			if ( ! empty( $this->query_args['cache'] ) ) {
+				$ts_cache_key = $this->get_cache_key( $query, 'ts' );
+				$cache_time   = isset( $this->query_args['cache_time'] ) ? (int) $this->query_args['cache_time'] : 3600;
+				$cache_time   = apply_filters_ref_array( 'better_search_query_cache_time', array( $cache_time, $this->query_args, $query, &$this ) );
+				Cache::set( $ts_cache_key, $this->topscore, $cache_time );
+			}
+		}
+
 		// Support caching to speed up retrieval.
 		if ( ! empty( $posts ) && ! empty( $this->query_args['cache'] ) && ! $this->in_cache && ! ( $query->is_preview() || is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) ) {
 
@@ -1298,14 +1401,16 @@ class Better_Search_Core_Query extends \WP_Query {
 			$cache_time = apply_filters_ref_array( 'better_search_query_cache_time', array( $this->query_args['cache_time'], $this->query_args, $query, &$this ) );
 			$cache_name = $this->get_cache_key( $query );
 
-			$cached_data = array();
+			$cached_data     = array();
+			$current_blog_id = get_current_blog_id();
 			foreach ( $query->posts as $post ) {
 				$cached_data[ $post->ID ] = array(
 					'score'   => isset( $post->score ) ? floatval( $post->score ) : 0,
-					'blog_id' => isset( $post->blog_id ) ? intval( $post->blog_id ) : get_current_blog_id(),
+					'blog_id' => isset( $post->blog_id ) ? intval( $post->blog_id ) : $current_blog_id,
 				);
 			}
 			$cached_data['found_posts'] = $query->found_posts;
+			$cached_data['topscore']    = $this->topscore;
 
 			Cache::set( $cache_name, $cached_data, $cache_time );
 		}
@@ -1364,8 +1469,38 @@ class Better_Search_Core_Query extends \WP_Query {
 			return $request;
 		}
 
-		if ( $this->should_use_custom_table() && $instance->topscore >= 0 ) {
+		if ( $this->should_use_custom_table() && $instance->topscore > 0 ) {
 			return $request;
+		}
+
+		// If topscore was already derived from post scores (e.g. via the_posts), skip the extra query.
+		if ( isset( $query->topscore ) && $query->topscore > 0 ) {
+			$this->topscore = (float) $query->topscore;
+			return $request;
+		}
+
+		$min_relevance        = $this->query_args['min_relevance'] ?? bsearch_get_option( 'min_relevance' );
+		$display_relevance    = bsearch_get_option( 'display_relevance' );
+		$orderby              = $query->get( 'orderby' );
+		$is_relevance_ordered = empty( $orderby ) || in_array( $orderby, array( 'relevance', 'relatedness' ), true );
+		$paged                = max( 1, (int) $query->get( 'paged' ) );
+
+		// SQL-level topscore is required for min_relevance filtering, and for direct paged relevance display when page-1 topscore is unavailable.
+		if ( (int) $min_relevance < 1 ) {
+			if ( ! $display_relevance || ! $is_relevance_ordered || $paged <= 1 ) {
+				return $request;
+			}
+
+			// Cache enabled: try to serve topscore from the page-1 cache entry.
+			if ( ! empty( $this->query_args['cache'] ) ) {
+				$ts_cache_key = $this->get_cache_key( $query, 'ts' );
+				$cached_ts    = Cache::get( $ts_cache_key );
+				if ( false !== $cached_ts ) {
+					$this->topscore  = (float) $cached_ts;
+					$query->topscore = $this->topscore;
+					return $request;
+				}
+			}
 		}
 
 		// Initialize cache variables.
@@ -1440,6 +1575,11 @@ class Better_Search_Core_Query extends \WP_Query {
 		}
 		if ( isset( $query->query_vars['paged'] ) ) {
 			$cache_attr['paged'] = $query->query_vars['paged'];
+		}
+
+		if ( 'ts' === $context ) {
+			$cache_attr['paged'] = 1;
+			unset( $cache_attr['offset'] );
 		}
 
 		return Cache::get_key( $cache_attr, $context );

@@ -4,7 +4,7 @@
  *
  * @link  https://webberzone.com
  *
- * @package WebberZone\Better_External_Links
+ * @package    Better_Search
  */
 
 namespace WebberZone\Better_Search\Admin\Settings;
@@ -103,6 +103,54 @@ class Settings_Form {
 	}
 
 	/**
+	 * Get field value from args or options.
+	 *
+	 * @param array $args Field arguments.
+	 * @return mixed Field value.
+	 */
+	protected function get_field_value( $args ) {
+		return $args['value'] ?? $this->get_option( $args['id'], $args['default'] ?? '' );
+	}
+
+	/**
+	 * Get sanitized field class string.
+	 *
+	 * @param array  $args          Field arguments.
+	 * @param string $default_class Default class to prepend.
+	 * @return string Sanitized class string.
+	 */
+	protected function get_field_class( $args, $default_class = '' ) {
+		$class = implode( ' ', array_map( 'sanitize_html_class', explode( ' ', $args['field_class'] ?? '' ) ) );
+		if ( $default_class ) {
+			$class = $default_class . ' ' . $class;
+		}
+		return trim( $class );
+	}
+
+	/**
+	 * Get placeholder attribute string.
+	 *
+	 * @param array $args Field arguments.
+	 * @return string Placeholder attribute or empty string.
+	 */
+	protected function get_placeholder_attribute( $args ) {
+		return empty( $args['placeholder'] ) ? '' : ' placeholder="' . esc_attr( $args['placeholder'] ) . '"';
+	}
+
+	/**
+	 * Get boolean state attributes (disabled, readonly, required).
+	 *
+	 * @param array $args Field arguments.
+	 * @return string Concatenated boolean attributes.
+	 */
+	protected function get_boolean_attributes( $args ) {
+		$disabled = ( ! empty( $args['disabled'] ) || ! empty( $args['pro'] ) ) ? ' disabled="disabled"' : '';
+		$readonly = ( isset( $args['readonly'] ) && true === $args['readonly'] ) ? ' readonly="readonly"' : '';
+		$required = ( isset( $args['required'] ) && true === $args['required'] ) ? ' required' : '';
+		return $disabled . $readonly . $required;
+	}
+
+	/**
 	 * Get field ID and name attributes.
 	 *
 	 * @param array $args Field arguments.
@@ -135,6 +183,109 @@ class Settings_Form {
 			'field_name' => $field_name,
 		);
 	}
+
+	/**
+	 * Returns the allowed HTML tags and attributes for settings form output.
+	 *
+	 * Use the `{prefix}_settings_form_allowed_html` filter to add extra tags or
+	 * attributes needed by custom field types or `field_attributes` entries.
+	 *
+	 * @return array<string, array<string, bool>>
+	 */
+	protected function get_allowed_html(): array {
+		$allowed = wp_kses_allowed_html( 'post' );
+
+		$form_tags = array(
+			'input'    => array(
+				'type'             => true,
+				'name'             => true,
+				'id'               => true,
+				'value'            => true,
+				'class'            => true,
+				'style'            => true,
+				'checked'          => true,
+				'disabled'         => true,
+				'readonly'         => true,
+				'required'         => true,
+				'placeholder'      => true,
+				'size'             => true,
+				'min'              => true,
+				'max'              => true,
+				'step'             => true,
+				'multiple'         => true,
+				'autocomplete'     => true,
+				// Tom Select data attributes (built-in Settings API feature).
+				'data-wp-prefix'   => true,
+				'data-wp-endpoint' => true,
+				'data-ts-config'   => true,
+			),
+			'select'   => array(
+				'id'               => true,
+				'name'             => true,
+				'class'            => true,
+				'style'            => true,
+				'disabled'         => true,
+				'multiple'         => true,
+				'size'             => true,
+				'autocomplete'     => true,
+				// Tom Select data attributes (built-in Settings API feature).
+				'data-wp-prefix'   => true,
+				'data-wp-endpoint' => true,
+				'data-ts-config'   => true,
+			),
+			'option'   => array(
+				'value'    => true,
+				'selected' => true,
+				'disabled' => true,
+			),
+			'optgroup' => array(
+				'label'    => true,
+				'disabled' => true,
+			),
+			'textarea' => array(
+				'id'           => true,
+				'name'         => true,
+				'class'        => true,
+				'style'        => true,
+				'rows'         => true,
+				'cols'         => true,
+				'disabled'     => true,
+				'readonly'     => true,
+				'required'     => true,
+				'placeholder'  => true,
+				'autocomplete' => true,
+			),
+			'label'    => array(
+				'for'   => true,
+				'class' => true,
+				'style' => true,
+			),
+			'button'   => array(
+				'type'     => true,
+				'id'       => true,
+				'class'    => true,
+				'style'    => true,
+				'disabled' => true,
+			),
+			'template' => array(
+				'class'   => true,
+				'data-id' => true,
+			),
+		);
+
+		$allowed = array_replace_recursive( $allowed, $form_tags );
+
+		/**
+		 * Filters the allowed HTML tags and attributes for settings form output.
+		 *
+		 * Use this filter to add data attributes or custom elements required by
+		 * field_attributes entries in your registered settings.
+		 *
+		 * @param array<string, array<string, bool>> $allowed Allowed HTML tags/attributes.
+		 */
+		return apply_filters( $this->prefix . '_settings_form_allowed_html', $allowed ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
+	}
+
 	/**
 	 * Miscellaneous callback funcion
 	 *
@@ -163,7 +314,7 @@ class Settings_Form {
 		 * @param string $html HTML string.
 		 * @param array  $args Arguments array.
 		 */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -179,23 +330,38 @@ class Settings_Form {
 	}
 
 	/**
+	 * Build additional attributes string from field_attributes.
+	 *
+	 * @param array $args Field arguments.
+	 * @return string Additional attributes string.
+	 */
+	protected function build_field_attributes( $args ) {
+		$attributes = '';
+		foreach ( (array) ( $args['field_attributes'] ?? array() ) as $attribute => $val ) {
+			$attr_name = sanitize_key( $attribute );
+			if ( empty( $attr_name ) ) {
+				continue;
+			}
+			if ( true === $val ) {
+				$attributes .= ' ' . $attr_name;
+			} elseif ( false !== $val ) {
+				$attributes .= sprintf( ' %1$s="%2$s"', $attr_name, esc_attr( $val ) );
+			}
+		}
+		return $attributes;
+	}
+
+	/**
 	 * Display text fields.
 	 *
 	 * @param array $args Array of arguments.
 	 */
 	public function callback_text( $args ) {
-		$value       = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value       = $this->get_field_value( $args );
 		$size        = sanitize_html_class( $args['size'] ?? 'regular' );
-		$class       = sanitize_html_class( $args['field_class'] );
-		$placeholder = empty( $args['placeholder'] ) ? '' : ' placeholder="' . $args['placeholder'] . '"';
-		$disabled    = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
-		$readonly    = ( isset( $args['readonly'] ) && true === $args['readonly'] ) ? ' readonly="readonly"' : '';
-		$required    = ( isset( $args['required'] ) && true === $args['required'] ) ? ' required' : '';
-		$attributes  = $disabled . $readonly . $required;
-
-		foreach ( (array) $args['field_attributes'] as $attribute => $val ) {
-			$attributes .= sprintf( ' %1$s="%2$s"', $attribute, esc_attr( $val ) );
-		}
+		$class       = $this->get_field_class( $args );
+		$placeholder = $this->get_placeholder_attribute( $args );
+		$attributes  = $this->get_boolean_attributes( $args ) . $this->build_field_attributes( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -211,7 +377,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -238,6 +404,8 @@ class Settings_Form {
 	 * @param array $args Array of arguments.
 	 */
 	public function callback_color( $args ) {
+		// Add color-field class for wpColorPicker initialization.
+		$args['field_class'] = ! empty( $args['field_class'] ) ? $args['field_class'] . ' color-field' : 'color-field';
 		$this->callback_text( $args );
 	}
 
@@ -266,14 +434,10 @@ class Settings_Form {
 	 * @return void
 	 */
 	public function callback_textarea( $args ) {
-
-		$value       = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
-		$class       = sanitize_html_class( $args['field_class'] );
-		$placeholder = empty( $args['placeholder'] ) ? '' : ' placeholder="' . $args['placeholder'] . '"';
-		$disabled    = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
-		$readonly    = ( isset( $args['readonly'] ) && true === $args['readonly'] ) ? ' readonly="readonly"' : '';
-		$required    = ( isset( $args['required'] ) && true === $args['required'] ) ? ' required' : '';
-		$attributes  = $disabled . $readonly . $required;
+		$value       = $this->get_field_value( $args );
+		$class       = $this->get_field_class( $args, 'large-text' );
+		$placeholder = $this->get_placeholder_attribute( $args );
+		$attributes  = $this->get_boolean_attributes( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -282,14 +446,14 @@ class Settings_Form {
 			$field_attributes['field_id'],
 			$field_attributes['field_name'],
 			esc_textarea( stripslashes( $value ) ),
-			'large-text ' . $class,
+			$class,
 			$attributes,
 			$placeholder
 		);
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -313,17 +477,26 @@ class Settings_Form {
 	}
 
 	/**
+	 * Get disabled attribute for pro/premium fields.
+	 *
+	 * @param array $args Field arguments.
+	 * @return string Disabled attribute or empty string.
+	 */
+	protected function get_disabled_attribute( $args ) {
+		return ( ! empty( $args['disabled'] ) || ! empty( $args['pro'] ) ) ? ' disabled="disabled"' : '';
+	}
+
+	/**
 	 * Display checkboxes.
 	 *
 	 * @param array $args Array of arguments.
 	 * @return void
 	 */
 	public function callback_checkbox( $args ) {
-
-		$value    = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value    = $this->get_field_value( $args );
 		$checked  = ! empty( $value ) ? checked( 1, $value, false ) : '';
 		$default  = isset( $args['default'] ) ? (int) $args['default'] : '';
-		$disabled = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
+		$disabled = $this->get_disabled_attribute( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -343,7 +516,7 @@ class Settings_Form {
 		$html             .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -357,9 +530,9 @@ class Settings_Form {
 	public function callback_multicheck( $args ) {
 		$html = '';
 
-		$value       = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value       = $this->get_field_value( $args );
 		$value_array = wp_parse_list( $value );
-		$disabled    = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
+		$disabled    = $this->get_disabled_attribute( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -390,14 +563,14 @@ class Settings_Form {
 				$html .= sprintf(
 					'<label for="%1$s">%2$s</label> <br />',
 					$option_id,
-					$option
+					wp_kses_post( $option )
 				);
 			}
 		}
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -411,8 +584,8 @@ class Settings_Form {
 	public function callback_radio( $args ) {
 		$html = '';
 
-		$value    = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
-		$disabled = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
+		$value    = $this->get_field_value( $args );
+		$disabled = $this->get_disabled_attribute( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -430,14 +603,14 @@ class Settings_Form {
 			$html .= sprintf(
 				'<label for="%1$s">%2$s</label> <br />',
 				$option_id,
-				$option
+				wp_kses_post( $option )
 			);
 		}
 
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -451,8 +624,8 @@ class Settings_Form {
 	public function callback_radiodesc( $args ) {
 		$html = '';
 
-		$value    = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
-		$disabled = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
+		$value    = $this->get_field_value( $args );
+		$disabled = $this->get_disabled_attribute( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -470,7 +643,7 @@ class Settings_Form {
 			$html .= sprintf(
 				'<label for="%1$s">%2$s: <em>%3$s</em></label>',
 				$option_id,
-				$option['name'],
+				wp_kses_post( $option['name'] ),
 				wp_kses_post( $option['description'] )
 			);
 
@@ -480,7 +653,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -505,7 +678,7 @@ class Settings_Form {
 			);
 		}
 
-		$value = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value = $this->get_field_value( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -522,7 +695,7 @@ class Settings_Form {
 			$html .= sprintf(
 				'<label for="%1$s">%2$s (%3$sx%4$s%5$s)</label> <br />',
 				$option_id,
-				$name,
+				wp_kses_post( $name ),
 				(int) $option['width'],
 				(int) $option['height'],
 				(bool) $option['crop'] ? ' cropped' : ''
@@ -532,7 +705,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -544,16 +717,13 @@ class Settings_Form {
 	 * @return void
 	 */
 	public function callback_number( $args ) {
-		$value       = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value       = $this->get_field_value( $args );
 		$max         = isset( $args['max'] ) ? intval( $args['max'] ) : 999999;
 		$min         = isset( $args['min'] ) ? intval( $args['min'] ) : 0;
 		$step        = isset( $args['step'] ) ? intval( $args['step'] ) : 1;
 		$size        = $args['size'] ?? 'regular';
-		$placeholder = empty( $args['placeholder'] ) ? '' : ' placeholder="' . esc_attr( $args['placeholder'] ) . '"';
-		$disabled    = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
-		$readonly    = ( isset( $args['readonly'] ) && true === $args['readonly'] ) ? ' readonly="readonly"' : '';
-		$required    = ( isset( $args['required'] ) && true === $args['required'] ) ? ' required' : '';
-		$attributes  = $disabled . $readonly . $required;
+		$placeholder = $this->get_placeholder_attribute( $args );
+		$attributes  = $this->get_boolean_attributes( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -572,7 +742,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -584,15 +754,10 @@ class Settings_Form {
 	 * @return void
 	 */
 	public function callback_select( $args ) {
-		$value      = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
-		$class      = sanitize_html_class( $args['field_class'] );
-		$disabled   = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
+		$value      = $this->get_field_value( $args );
+		$class      = $this->get_field_class( $args );
 		$required   = ( isset( $args['required'] ) && true === $args['required'] ) ? ' required' : '';
-		$attributes = $disabled . $required;
-
-		foreach ( (array) $args['field_attributes'] as $attribute => $val ) {
-			$attributes .= sprintf( ' %1$s="%2$s"', $attribute, esc_attr( $val ) );
-		}
+		$attributes = $this->get_disabled_attribute( $args ) . $required . $this->build_field_attributes( $args );
 
 		if ( isset( $args['chosen'] ) ) {
 			$class .= ' chosen';
@@ -609,14 +774,14 @@ class Settings_Form {
 		);
 
 		foreach ( (array) $args['options'] as $option => $name ) {
-			$html .= sprintf( '<option value="%1$s" %2$s>%3$s</option>', sanitize_key( $option ), selected( $option, $value, false ), $name );
+			$html .= sprintf( '<option value="%1$s" %2$s>%3$s</option>', sanitize_key( $option ), selected( $option, $value, false ), esc_html( $name ) );
 		}
 
 		$html .= '</select>';
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -628,8 +793,8 @@ class Settings_Form {
 	public function callback_posttypes( $args ) {
 		$html = '';
 
-		$options  = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
-		$disabled = ( ! empty( $args['disabled'] ) || $args['pro'] ) ? ' disabled="disabled"' : '';
+		$options  = $this->get_field_value( $args );
+		$disabled = $this->get_disabled_attribute( $args );
 
 		// If post_types contains a query string then parse it with wp_parse_args.
 		if ( is_string( $options ) && strpos( $options, '=' ) ) {
@@ -665,7 +830,7 @@ class Settings_Form {
 				esc_attr( $wp_post_type->name ),
 				checked( true, in_array( $wp_post_type->name, $posts_types_inc, true ), false ),
 				$disabled,
-				$wp_post_type->label
+				esc_html( $wp_post_type->label )
 			);
 
 		}
@@ -673,7 +838,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 
@@ -686,7 +851,7 @@ class Settings_Form {
 	public function callback_taxonomies( $args ) {
 		$html = '';
 
-		$options = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$options = $this->get_field_value( $args );
 
 		// If taxonomies contains a query string then parse it with wp_parse_args.
 		if ( is_string( $options ) && strpos( $options, '=' ) ) {
@@ -719,7 +884,7 @@ class Settings_Form {
 				$option_name,
 				esc_attr( $wp_taxonomy->name ),
 				checked( true, in_array( $wp_taxonomy->name, $taxonomies_inc, true ), false ),
-				$wp_taxonomy->labels->name
+				esc_html( $wp_taxonomy->labels->name )
 			);
 
 		}
@@ -727,7 +892,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 
@@ -737,8 +902,7 @@ class Settings_Form {
 	 * @param array $args Array of arguments.
 	 */
 	public function callback_wysiwyg( $args ) {
-
-		$value = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value = $this->get_field_value( $args );
 		$size  = $args['size'] ?? '500px';
 
 		$field_attributes = $this->get_field_attributes( $args );
@@ -762,7 +926,7 @@ class Settings_Form {
 
 		printf( '</div>' );
 
-		echo $this->get_field_description( $args ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses_post( $this->get_field_description( $args ) );
 	}
 
 	/**
@@ -771,10 +935,9 @@ class Settings_Form {
 	 * @param array $args Array of arguments.
 	 */
 	public function callback_file( $args ) {
-
-		$value = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value = $this->get_field_value( $args );
 		$size  = sanitize_html_class( $args['size'] ?? 'regular' );
-		$class = sanitize_html_class( $args['field_class'] );
+		$class = $this->get_field_class( $args );
 		$label = $args['options']['button_label'] ?? $this->translation_strings['button_label'];
 
 		$field_attributes = $this->get_field_attributes( $args );
@@ -786,11 +949,11 @@ class Settings_Form {
 			$field_attributes['field_name'],
 			esc_attr( $value )
 		);
-		$html .= sprintf( '<input type="button" class="button button-secondary file-browser" value="%s" />', $label );
+		$html .= sprintf( '<input type="button" class="button button-secondary file-browser" value="%s" />', esc_attr( $label ) );
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -799,10 +962,9 @@ class Settings_Form {
 	 * @param array $args Array of arguments.
 	 */
 	public function callback_password( $args ) {
-
-		$value = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$value = $this->get_field_value( $args );
 		$size  = sanitize_html_class( $args['size'] ?? 'regular' );
-		$class = sanitize_html_class( $args['field_class'] );
+		$class = $this->get_field_class( $args );
 
 		$field_attributes = $this->get_field_attributes( $args );
 
@@ -817,7 +979,7 @@ class Settings_Form {
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -827,23 +989,26 @@ class Settings_Form {
 	 * @return void
 	 */
 	public function callback_repeater( $args ) {
-		$value = isset( $args['value'] ) ? (array) $args['value'] : $this->get_option( $args['id'], array() );
-		$value = ! empty( $value ) && is_array( $value ) ? $value : array();
+		$raw_value = $this->get_field_value( $args );
+		$value     = ! empty( $raw_value ) && is_array( $raw_value ) ? $raw_value : array();
 
-		$class      = ! empty( $args['field_class'] ) ? sanitize_html_class( $args['field_class'] ) : '';
-		$disabled   = ( ! empty( $args['disabled'] ) || ! empty( $args['pro'] ) ) ? ' disabled="disabled"' : '';
-		$readonly   = ( isset( $args['readonly'] ) && true === $args['readonly'] ) ? ' readonly="readonly"' : '';
-		$attributes = $disabled . $readonly;
+		$class      = $this->get_field_class( $args );
+		$attributes = $this->get_boolean_attributes( $args ) . $this->build_field_attributes( $args );
 
-		// Process additional field attributes.
-		foreach ( (array) $args['field_attributes'] as $attribute => $val ) {
-			$attributes .= sprintf( ' %1$s="%2$s"', sanitize_key( $attribute ), esc_attr( $val ) );
-		}
+		$data_index        = (string) count( $value );
+		$live_update_field = ! empty( $args['live_update_field'] ) ? $args['live_update_field'] : 'name';
+		$fallback_title    = ! empty( $args['new_item_text'] ) ? $args['new_item_text'] : $this->translation_strings['repeater_new_item'];
 
 		ob_start();
 		?>
-		<div class="<?php echo esc_attr( $class ); ?> wz-repeater-wrapper" id="<?php echo esc_attr( $args['id'] ); ?>-wrapper" <?php echo $attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
-			<div class="<?php echo esc_attr( $args['id'] ); ?>-items">
+		<div class="<?php echo esc_attr( $class ); ?> wz-repeater-wrapper"
+			id="<?php echo esc_attr( $args['id'] ); ?>-wrapper"
+			data-index="<?php echo esc_attr( $data_index ); ?>"
+			data-live-update-field="<?php echo esc_attr( $live_update_field ); ?>"
+			data-fallback-title="<?php echo esc_attr( $fallback_title ); ?>"
+			<?php echo $attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
+
+			<div class="<?php echo esc_attr( $args['id'] ); ?>-items wz-repeater-items">
 				<?php
 				if ( ! empty( $value ) ) {
 					foreach ( array_values( $value ) as $index => $item ) {
@@ -856,93 +1021,16 @@ class Settings_Form {
 				<?php echo esc_html( ! empty( $args['add_button_text'] ) ? $args['add_button_text'] : 'Add Item' ); ?>
 			</button>
 
-			<script type="text/template" class="repeater-template" data-id="<?php echo esc_attr( $args['id'] ); ?>">
+			<template class="repeater-template" data-id="<?php echo esc_attr( $args['id'] ); ?>">
 				<?php $this->render_repeater_item( $args, '{{INDEX}}' ); ?>
-			</script>
+			</template>
 		</div>
-
-		<script>
-		jQuery(document).ready(function($) {
-			var wrapper = $('#<?php echo esc_js( $args['id'] ); ?>-wrapper');
-			var itemsContainer = wrapper.find('.<?php echo esc_js( $args['id'] ); ?>-items');
-			var index = <?php echo esc_js( (string) count( $value ) ); ?>;
-
-			// Add Item
-			wrapper.on('click', '.add-item', function() {
-				var template = wrapper.find('.repeater-template').html();
-				template = template.replace(/{{INDEX}}/g, index);
-				itemsContainer.append(template);
-				index++;
-
-				// Ensure the toggle icon for the new item is set to the collapsed state (▲)
-				itemsContainer.find('.repeater-item-header:last .toggle-icon').text('▲');
-
-				// Ensure that .repeater-item-content is set to display:block
-				itemsContainer.find('.repeater-item-content:last').css('display', 'block');
-			});
-
-			// Remove Item
-			wrapper.on('click', '.remove-item', function() {
-				$(this).closest('.wz-repeater-item').remove();
-				reindexItems();
-			});
-
-			// Move Up
-			wrapper.on('click', '.move-up', function() {
-				var item = $(this).closest('.wz-repeater-item');
-				var prev = item.prev();
-				if (prev.length) {
-					item.insertBefore(prev);
-					reindexItems();
-				}
-			});
-
-			// Move Down
-			wrapper.on('click', '.move-down', function() {
-				var item = $(this).closest('.wz-repeater-item');
-				var next = item.next();
-				if (next.length) {
-					item.insertAfter(next);
-					reindexItems();
-				}
-			});
-
-			// Toggle Accordion
-			wrapper.on('click', '.repeater-item-header', function() {
-				var $this = $(this);
-				var $toggleIcon = $this.find('.toggle-icon');
-				var $content = $this.next('.repeater-item-content');
-
-				// Check if content is currently visible or hidden, and toggle accordingly
-				if ($content.is(':visible')) {
-					$content.slideUp();
-					$toggleIcon.text('▼');  // Expanded state
-				} else {
-					$content.slideDown();
-					$toggleIcon.text('▲');  // Collapsed state
-				}
-			});
-
-			// Reindex Items After Adding, Removing, or Moving
-			function reindexItems() {
-				itemsContainer.find('.wz-repeater-item').each(function(idx) {
-					$(this).find(':input').each(function() {
-						var name = $(this).attr('name');
-						if (name) {
-							name = name.replace(/\[\d+\]/, '[' + idx + ']');
-							$(this).attr('name', name);
-						}
-					});
-				});
-			}
-		});
-		</script>
 		<?php
 		$html  = ob_get_clean();
 		$html .= $this->get_field_description( $args );
 
 		/** This filter has been defined in class-settings-api.php */
-		echo apply_filters( $this->prefix . '_after_setting_output', $html, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound,WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo wp_kses( apply_filters( $this->prefix . '_after_setting_output', $html, $args ), $this->get_allowed_html() ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 	}
 
 	/**
@@ -953,18 +1041,33 @@ class Settings_Form {
 	 * @param array|null $item  Item data if exists.
 	 * @return void
 	 */
-	private function render_repeater_item( $args, $index, $item = null ) {
+	public function render_repeater_item( $args, $index, $item = null ) {
 		if ( empty( $args['fields'] ) || ! is_array( $args['fields'] ) ) {
 			return;
 		}
 
+		$fallback_title = ! empty( $args['new_item_text'] ) ? $args['new_item_text'] : $this->translation_strings['repeater_new_item'];
+
+		// Generate or retrieve unique row ID.
+		$item_id = '';
+		if ( is_array( $item ) && isset( $item['row_id'] ) ) {
+			$item_id = $item['row_id'];
+		} elseif ( '{{INDEX}}' !== $index ) {
+			// For existing items without row_id, generate a persistent one.
+			$item_id = 'row_' . md5( $args['id'] . '_' . $index );
+		} else {
+			// For new items, use a placeholder that will be replaced.
+			$item_id = '{{ROW_ID}}';
+		}
+
 		?>
-	<div class="wz-repeater-item">
-		<div class="repeater-item-header">
+		<div class="wz-repeater-item" data-row-id="<?php echo esc_attr( $item_id ); ?>">
+			<input type="hidden" name="<?php echo esc_attr( $this->settings_key ); ?>[<?php echo esc_attr( $args['id'] ); ?>][<?php echo esc_attr( $index ); ?>][row_id]" value="<?php echo esc_attr( $item_id ); ?>" />
+			<div class="repeater-item-header">
 			<?php
 			$display_field = ! empty( $args['live_update_field'] ) ? $args['live_update_field'] : 'name';
 			?>
-			<span class="repeater-title"><?php echo esc_html( ! empty( $item['fields'][ $display_field ] ) ? $item['fields'][ $display_field ] : $this->translation_strings['repeater_new_item'] ); ?></span>
+			<span class="repeater-title"><?php echo esc_html( ! empty( $item['fields'][ $display_field ] ) ? $item['fields'][ $display_field ] : $fallback_title ); ?></span>
 			<span class="toggle-icon">▼</span>
 		</div>
 		<div class="repeater-item-content" style="display: none;">
@@ -1027,22 +1130,7 @@ class Settings_Form {
 		</div>
 	</div>
 
-	<script>
-	jQuery(document).ready(function($) {
-		var wrapper = $('#<?php echo esc_js( $args['id'] ); ?>-wrapper');
-		var itemsContainer = wrapper.find('.<?php echo esc_js( $args['id'] ); ?>-items');
-
-		// Live update repeater title when the specified field changes
-		var liveUpdateField = '<?php echo esc_js( ! empty( $args['live_update_field'] ) ? $args['live_update_field'] : 'name' ); ?>';
-		wrapper.on('input', '.wz-repeater-item input[name$="[fields][' + liveUpdateField + ']"]', function() {
-			var $this = $(this);
-			var newName = $this.val();
-			var $repeaterTitle = $this.closest('.wz-repeater-item').find('.repeater-title');
-			$repeaterTitle.text(newName || '<?php echo esc_js( $this->translation_strings['repeater_new_item'] ); ?>'); // Update title or set default if empty
-		});
-	});
-	</script>
-		<?php
+			<?php
 	}
 
 
@@ -1055,7 +1143,7 @@ class Settings_Form {
 	 * @param array $args Array of arguments.
 	 */
 	public function callback_sensitive( $args ) {
-		$encrypted_key = $args['value'] ?? $this->get_option( $args['id'], $args['default'] );
+		$encrypted_key = $this->get_field_value( $args );
 		$decrypted_key = Settings_API::decrypt_api_key( $encrypted_key );
 
 		$args['value'] = $decrypted_key ? str_repeat( '*', strlen( $decrypted_key ) - 4 ) . substr( $decrypted_key, -4 ) : '';
