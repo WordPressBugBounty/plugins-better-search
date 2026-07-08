@@ -80,6 +80,17 @@ class Better_Search_Core_Query extends \WP_Query {
 	public $use_custom_table = false;
 
 	/**
+	 * Whether post_excerpt/ct.excerpt was folded into the FULLTEXT MATCH clause.
+	 *
+	 * Set by Query_Modifier::query_posts_where_match() so the LIKE-based excerpt
+	 * check can be skipped when it's redundant.
+	 *
+	 * @since 4.3.1
+	 * @var bool
+	 */
+	public $excerpt_in_fulltext_match = false;
+
+	/**
 	 * Holds the search terms.
 	 *
 	 * @since 3.0.0
@@ -388,7 +399,7 @@ class Better_Search_Core_Query extends \WP_Query {
 		 *
 		 * @since 3.2.2
 		 *
-		 * @param array   $meta_query Array of meta_query parameters.
+		 * @param mixed   $meta_query Array of meta_query parameters.
 		 * @param array   $args       Arguments array.
 		 */
 		$meta_query = apply_filters( 'better_search_query_meta_query', $meta_query, $args ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
@@ -555,6 +566,16 @@ class Better_Search_Core_Query extends \WP_Query {
 				}
 			}
 			$this->is_boolean_mode = $boolean_proxy;
+		}
+		// Phrase search: if the query contains double-quoted terms, boolean mode is required.
+		// MySQL NATURAL LANGUAGE FULLTEXT ignores quotes; BOOLEAN mode is needed for phrase matching.
+		if ( $this->use_fulltext && ! $this->is_boolean_mode ) {
+			foreach ( $search_words as $search_word ) {
+				if ( preg_match( '/^"[^"]+"$/', $search_word ) ) {
+					$this->is_boolean_mode = true;
+					break;
+				}
+			}
 		}
 		$this->is_seamless_mode = $this->input_query_args['seamless'] ?? bsearch_get_option( 'seamless' );
 		$this->should_use_custom_table();
@@ -827,6 +848,29 @@ class Better_Search_Core_Query extends \WP_Query {
 		$search_clause = '';
 
 		/**
+		 * Filters the column references used in LIKE search clauses.
+		 *
+		 * When custom tables are active, this lets pro code swap wp_posts
+		 * columns for the custom table (ct.title, ct.content, ct.excerpt).
+		 *
+		 * @since 4.3.1
+		 *
+		 * @param array                    $like_columns Column references array.
+		 * @param Better_Search_Core_Query $instance     The Better_Search_Core_Query instance.
+		 */
+		$like_columns = apply_filters_ref_array(
+			'better_search_query_like_columns',
+			array(
+				array(
+					'title'   => "{$wpdb->posts}.post_title",
+					'content' => "{$wpdb->posts}.post_content",
+					'excerpt' => "{$wpdb->posts}.post_excerpt",
+				),
+				&$this,
+			)
+		);
+
+		/**
 		 * Filters the prefix that indicates that a search term should be excluded from results.
 		 *
 		 * @since 3.0.0
@@ -856,7 +900,7 @@ class Better_Search_Core_Query extends \WP_Query {
 				if ( $exclude ) {
 					$term = substr( $term, strlen( $exclusion_prefix ) );
 				}
-				$term = preg_replace( '/[+\-*"~<>()@\']/', '', $term );
+				$term = preg_replace( '/[+*"~<>()@\']|(?<!\w)-|-(?!\w)/u', '', $term );
 
 				if ( '' === $term ) {
 					continue;
@@ -871,7 +915,7 @@ class Better_Search_Core_Query extends \WP_Query {
 				}
 
 				$like      = $n . $wpdb->esc_like( $term ) . $n;
-				$search   .= $wpdb->prepare( "{$searchand}(({$wpdb->posts}.post_title $like_op %s) $andor_op ({$wpdb->posts}.post_content $like_op %s))", $like, $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$search   .= $wpdb->prepare( "{$searchand}(({$like_columns['title']} $like_op %s) $andor_op ({$like_columns['content']} $like_op %s))", $like, $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$searchand = ' AND ';
 			}
 		} else {
@@ -901,7 +945,7 @@ class Better_Search_Core_Query extends \WP_Query {
 			if ( $exclude ) {
 				$term = substr( $term, strlen( $exclusion_prefix ) );
 			}
-			$term = preg_replace( '/[+\-*"~<>()@\']/', '', $term );
+			$term = preg_replace( '/[+*"~<>()@\']|(?<!\w)-|-(?!\w)/u', '', $term );
 
 			if ( '' === $term ) {
 				continue;
@@ -946,8 +990,8 @@ class Better_Search_Core_Query extends \WP_Query {
 				}
 			}
 
-			if ( ! empty( $this->query_args['search_excerpt'] ) ) {
-				$clause[] = $wpdb->prepare( "({$wpdb->posts}.post_excerpt $like_op %s)", $term ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			if ( ! empty( $this->query_args['search_excerpt'] ) && ! $this->excerpt_in_fulltext_match ) {
+				$clause[] = $wpdb->prepare( "({$like_columns['excerpt']} $like_op %s)", $term ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			}
 
 			if ( ! empty( $this->query_args['search_meta'] ) ) {

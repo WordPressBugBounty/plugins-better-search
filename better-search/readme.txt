@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.3.0
+Stable tag: 4.3.1
 Requires at least: 6.6
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -124,6 +124,21 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 
 == Changelog ==
+
+= 4.3.1 =
+
+*Release Date - 8 July 2026*
+
+* Bug fixes:
+	* Fixed phrase search: double-quoted terms (e.g. `"WordPress"` or `"WordPress plugin"`) now always perform a phrase search by automatically enabling boolean mode when quoted terms are detected.
+	* Fixed LIKE search stripping hyphens from compound terms (e.g. `b-26` was incorrectly searched as `b26`). Internal hyphens are now preserved; only leading/trailing hyphens used as boolean operators are stripped.
+	* [Pro] Fixed: short search terms (below the FULLTEXT minimum character threshold) now target the custom table columns (`ct.title`, `ct.content`, `ct.excerpt`) instead of `wp_posts` when custom tables are enabled. Previously the LIKE fallback always searched against `wp_posts` even with a fully indexed custom table.
+	* Fixed SQL syntax error when search query contains only negative terms.
+	* Fixed exclusion prefix handling and SQL precedence for negative search terms.
+
+* Enhancements:
+	* [Pro] Removed a redundant `excerpt LIKE` clause from search queries when the excerpt is already covered by the FULLTEXT `MATCH` clause, reducing unnecessary query overhead.
+	* [Pro] The excerpt column is now only pulled into the FULLTEXT `MATCH` clause (native or custom tables) when the excerpt weight is greater than zero or "Search Excerpt" is explicitly enabled, instead of unconditionally.
 
 = 4.3.0 =
 
