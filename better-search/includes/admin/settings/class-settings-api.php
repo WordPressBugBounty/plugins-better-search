@@ -19,6 +19,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Settings API wrapper class
  *
  * @version 2.9.0
+ * @since 4.0.0
  */
 class Settings_API {
 
@@ -27,7 +28,7 @@ class Settings_API {
 	 *
 	 * @var   string
 	 */
-	public const VERSION = '2.9.0';
+	public const VERSION = '2.11.0';
 
 	/**
 	 * Settings Key.
@@ -72,6 +73,14 @@ class Settings_API {
 	 * @var string Default navigation tab.
 	 */
 	protected $default_tab;
+
+	/**
+	 * Version used for cache-busting enqueued assets. Pass the plugin's own
+	 * version via props so every plugin release refreshes browser caches.
+	 *
+	 * @var string
+	 */
+	protected $version = self::VERSION;
 
 	/**
 	 * Settings page.
@@ -124,8 +133,6 @@ class Settings_API {
 
 	/**
 	 * Settings form.
-	 *
-	 * @since 2.0.0
 	 *
 	 * @var object Settings form.
 	 */
@@ -218,6 +225,7 @@ class Settings_API {
 			'admin_footer_text' => '',
 			'help_sidebar'      => '',
 			'help_tabs'         => array(),
+			'version'           => self::VERSION,
 		);
 
 		$args = wp_parse_args( $args, $defaults );
@@ -241,7 +249,6 @@ class Settings_API {
 	 *     @type string $save_changes         Save changes button label.
 	 *     @type string $reset_settings       Reset settings button label.
 	 *     @type string $reset_button_confirm Reset button confirmation message.
-	 *     @type string $checkbox_modified    Checkbox modified label.
 	 * }
 	 *
 	 * @return void
@@ -256,12 +263,17 @@ class Settings_API {
 			'save_changes'          => 'Save Changes',
 			'reset_settings'        => 'Reset all settings',
 			'reset_button_confirm'  => 'Do you really want to reset all these settings to their default values?',
-			'checkbox_modified'     => 'Modified from default setting',
 			'button_label'          => 'Choose File',
 			'previous_saved'        => 'Previously saved',
 			'repeater_new_item'     => 'New Item',
 			'required_label'        => 'Required',
 			'tom_select_no_results' => 'No results found for "%s"',
+			'search_placeholder'    => 'Search settings',
+			'search_no_results'     => 'No settings found. Try a different search term.',
+			'search_clear'          => 'Clear search',
+			'search_results_single' => '%d setting found.',
+			'search_results_plural' => '%d settings found.',
+			'search_matches_label'  => 'matching settings',
 		);
 
 		$strings = wp_parse_args( $strings, $defaults );
@@ -484,28 +496,28 @@ class Settings_API {
 			'wz-' . $this->prefix . '-admin',
 			plugins_url( 'js/settings-admin-scripts' . $minimize . '.js', __FILE__ ),
 			array( 'jquery', 'wp-color-picker', 'jquery-ui-tabs' ),
-			self::VERSION,
+			$this->version,
 			true
 		);
 		wp_register_script(
 			'wz-' . $this->prefix . '-codemirror',
 			plugins_url( 'js/apply-cm' . $minimize . '.js', __FILE__ ),
 			array( 'jquery', 'underscore', 'code-editor' ),
-			self::VERSION,
+			$this->version,
 			true
 		);
 		wp_register_script(
 			'wz-' . $this->prefix . '-media-selector',
 			plugins_url( 'js/media-selector' . $minimize . '.js', __FILE__ ),
 			array( 'jquery', 'media-editor', 'media-views' ),
-			self::VERSION,
+			$this->version,
 			true
 		);
 		wp_register_style(
 			'wz-' . $this->prefix . '-admin',
 			plugins_url( 'css/admin-style' . $minimize . '.css', __FILE__ ),
 			array( 'wp-color-picker' ),
-			self::VERSION
+			$this->version
 		);
 
 		// Tom Select scripts and styles.
@@ -513,20 +525,20 @@ class Settings_API {
 			'wz-' . $this->prefix . '-tom-select',
 			plugins_url( 'css/tom-select.min.css', __FILE__ ),
 			array(),
-			self::VERSION
+			$this->version
 		);
 		wp_register_script(
 			'wz-' . $this->prefix . '-tom-select',
 			plugins_url( 'js/tom-select.complete.min.js', __FILE__ ),
 			array( 'jquery' ),
-			self::VERSION,
+			$this->version,
 			true
 		);
 		wp_register_script(
 			'wz-' . $this->prefix . '-tom-select-init',
 			plugin_dir_url( __FILE__ ) . 'js/tom-select-init' . $minimize . '.js',
 			array( 'jquery', 'wz-' . $this->prefix . '-tom-select' ),
-			self::VERSION,
+			$this->version,
 			true
 		);
 		wp_localize_script(
@@ -535,6 +547,12 @@ class Settings_API {
 			array(
 				'prefix'       => $this->prefix,
 				'settings_key' => $this->settings_key,
+				'strings'      => array(
+					'search_no_results'     => esc_html( $this->translation_strings['search_no_results'] ?? 'No settings found. Try a different search term.' ),
+					'search_results_single' => esc_html( $this->translation_strings['search_results_single'] ?? '%d setting found.' ),
+					'search_results_plural' => esc_html( $this->translation_strings['search_results_plural'] ?? '%d settings found.' ),
+					'search_matches_label'  => esc_html( $this->translation_strings['search_matches_label'] ?? 'matching settings' ),
+				),
 			)
 		);
 
@@ -637,6 +655,11 @@ class Settings_API {
 				$name     = $args['name'];
 				$type     = isset( $args['type'] ) ? $args['type'] : 'text';
 				$callback = method_exists( $this->settings_form, "callback_{$type}" ) ? array( $this->settings_form, "callback_{$type}" ) : array( $this->settings_form, 'callback_missing' );
+
+				// Tag header rows so the settings search can group fields under them.
+				if ( 'header' === $type ) {
+					$args['class'] = trim( ( $args['class'] ?? '' ) . ' wz-settings-header-row' );
+				}
 
 				add_settings_field(
 					"{$settings_key}[{$id}]",     // ID of the settings field. We save it within the settings array.
@@ -819,6 +842,25 @@ class Settings_API {
 	}
 
 	/**
+	 * Get the settings keys that are rendered locked (disabled or pro-gated).
+	 *
+	 * @return array Map of settings key => true for each locked setting.
+	 */
+	public function get_locked_settings() {
+		$locked = array();
+
+		foreach ( $this->registered_settings as $settings ) {
+			foreach ( $settings as $setting ) {
+				if ( isset( $setting['id'] ) && ( ! empty( $setting['disabled'] ) || ! empty( $setting['pro'] ) ) ) {
+					$locked[ $setting['id'] ] = true;
+				}
+			}
+		}
+
+		return $locked;
+	}
+
+	/**
 	 * Sanitize the form data being submitted.
 	 *
 	 * @param  array $input Input unclean array.
@@ -848,6 +890,7 @@ class Settings_API {
 		$settings       = get_option( $this->settings_key );
 		$settings       = is_array( $settings ) ? $settings : array();
 		$settings_types = $this->get_registered_settings_types();
+		$locked         = $this->get_locked_settings();
 
 		// Get the tab. This is also our settings' section.
 		$tab = $referrer['tab'] ?? $this->default_tab;
@@ -893,7 +936,10 @@ class Settings_API {
 
 			// Delete any key that is not present when we submit the input array.
 			if ( ! isset( $input[ $key ] ) ) {
-				unset( $output[ $key ] );
+				// Disabled fields are never submitted, so a missing key must not delete them.
+				if ( ! isset( $locked[ $key ] ) ) {
+					unset( $output[ $key ] );
+				}
 			}
 
 			// Delete any settings that are no longer part of our registered settings.
@@ -933,8 +979,8 @@ class Settings_API {
 				?>
 
 				<div id="poststuff">
-				<div id="post-body" class="metabox-holder columns-2">
-				<div id="post-body-content">
+				<div id="post-body" class="metabox-holder columns-2 wz-settings-post-body">
+				<div id="post-body-content" class="wz-vertical-tabs">
 
 				<?php $this->show_navigation(); ?>
 				<?php $this->show_form(); ?>
@@ -970,8 +1016,6 @@ class Settings_API {
 	public function show_navigation() {
 		$active_tab = isset( $_GET['tab'] ) && array_key_exists( sanitize_key( wp_unslash( $_GET['tab'] ) ), $this->settings_sections ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : $this->default_tab; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.NonceVerification.Recommended
 
-		$html = '<ul class="nav-tab-wrapper" style="padding:0">';
-
 		$count = count( $this->settings_sections );
 
 		// Don't show the navigation if only one section exists.
@@ -979,12 +1023,30 @@ class Settings_API {
 			return;
 		}
 
+		$html = '<ul class="nav-tab-wrapper">';
+
+		// Settings search box. Rendered via wp_kses() with an extended allowed list below as
+		// wp_kses_post() strips input and button tags.
+		$search_box = sprintf(
+			'<li class="wz-settings-search-wrap">' .
+			'<label class="screen-reader-text" for="%1$s">%2$s</label>' .
+			'<span class="wz-settings-search-box">' .
+			'<input type="search" id="%1$s" class="wz-settings-search" placeholder="%2$s" autocomplete="off" />' .
+			'<button type="button" class="wz-settings-search-clear" aria-label="%3$s" hidden><span aria-hidden="true">&times;</span></button>' .
+			'</span>' .
+			'<span class="wz-settings-search-status screen-reader-text" role="status" aria-live="polite"></span>' .
+			'</li>',
+			esc_attr( "{$this->prefix}-settings-search" ),
+			esc_attr( $this->translation_strings['search_placeholder'] ?? 'Search settings' ),
+			esc_attr( $this->translation_strings['search_clear'] ?? 'Clear search' )
+		);
+
 		foreach ( $this->settings_sections as $tab_id => $tab_name ) {
 
 			$active = $active_tab === $tab_id ? ' ' : '';
 
 			$html .= sprintf(
-				'<li style="padding:0; border:0; margin:0;"><a href="#%s" title="%s" class="nav-tab %s">%s</a></li>',
+				'<li><a href="#%s" title="%s" class="nav-tab %s">%s</a></li>',
 				esc_attr( $tab_id ),
 				esc_attr( $tab_name ),
 				sanitize_html_class( $active ),
@@ -995,7 +1057,33 @@ class Settings_API {
 
 		$html .= '</ul>';
 
-		echo wp_kses_post( $html );
+		$allowed_html           = wp_kses_allowed_html( 'post' );
+		$allowed_html['input']  = array(
+			'type'         => true,
+			'id'           => true,
+			'class'        => true,
+			'placeholder'  => true,
+			'autocomplete' => true,
+		);
+		$allowed_html['button'] = array(
+			'type'       => true,
+			'class'      => true,
+			'aria-label' => true,
+			'hidden'     => true,
+		);
+		$allowed_html['span']   = array_merge(
+			(array) ( $allowed_html['span'] ?? array() ),
+			array(
+				'class'       => true,
+				'role'        => true,
+				'aria-live'   => true,
+				'aria-hidden' => true,
+			)
+		);
+
+		$html = str_replace( '<ul class="nav-tab-wrapper">', '<ul class="nav-tab-wrapper">' . $search_box, $html );
+
+		echo wp_kses( $html, $allowed_html );
 	}
 
 	/**
@@ -1013,6 +1101,7 @@ class Settings_API {
 			<?php foreach ( $this->settings_sections as $tab_id => $tab_name ) : ?>
 
 				<div id="<?php echo esc_attr( $tab_id ); ?>">
+					<h2 class="wz-section-title" tabindex="-1"><?php echo esc_html( $tab_name ); ?></h2>
 					<table class="form-table">
 					<?php
 						do_settings_fields( $this->prefix . '_settings_' . $tab_id, $this->prefix . '_settings_' . $tab_id );
@@ -1054,6 +1143,7 @@ class Settings_API {
 					do_action( $this->prefix . '_settings_form_buttons', $tab_id, $tab_name, $this->settings_sections ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
 					?>
 					</p>
+					<p class="wz-modified-legend"><span class="wz-modified-dot"></span><?php echo esc_html( $this->translation_strings['modified_legend'] ?? 'Setting modified from its default value' ); ?></p>
 				</div><!-- /#tab_id-->
 
 				<?php endforeach; ?>

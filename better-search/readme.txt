@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.3.2
+Stable tag: 4.4.0
 Requires at least: 6.6
 Tested up to: 7.0
 Requires PHP: 7.4
@@ -125,6 +125,31 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 4.4.0 =
+
+*Release Date - 2 August 2026*
+
+Read more in the [Better Search v4.4.0 release post](https://webberzone.com/announcements/better-search-v4-4-0/).
+
+* Features:
+	* Added a Feature Manager to toggle optional features from a new Features tab.
+	* [Pro] Added "Did you mean" suggestions for zero-result searches, with Suggest and Auto-correct modes.
+	* [Pro] Added search redirects with exact or contains matching and 301 or 302 status codes.
+	* Added search to quickly find options across settings tabs.
+
+* Enhancements:
+	* Added the `bsearch_pre_index_content_parts` filter to modify content before it is stored in custom search tables.
+	* Standardized FULLTEXT index names across database tools.
+	* Updated the Settings API to version 2.10.1 and refreshed admin assets.
+
+* Bug fixes:
+	* Fixed settings page layout and field rendering issues.
+	* Fixed disabled Pro settings being discarded or remaining editable in the free plugin.
+	* Fixed validation preventing settings from saving when required fields were inside collapsed repeater rows.
+	* [Pro] Fixed the setup wizard changing steps while custom tables were being indexed.
+	* Fixed database checks not restoring the previous error display state.
+	* Fixed highlighting fallback behavior for queries containing an unclosed quote.
+
 = 4.3.2 =
 
 *Release Date - 12 July 2026*
@@ -198,5 +223,5 @@ For previous changelog entries, please refer to the separate changelog.txt file 
 
 == Upgrade Notice ==
 
-= 4.3.0 =
-Adds WP-CLI support, dashboard chart drill-down, an InnoDB conversion tool, scheduled index reconciliation, and a network admin dashboard for multisite. Includes a fuzzy search refactor and a long list of stability fixes.
+= 4.4.0 =
+Adds the Feature Manager, settings search, "Did you mean" suggestions and search redirects, alongside Settings API improvements and bug fixes.
