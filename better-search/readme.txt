@@ -2,9 +2,9 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.4.0
+Stable tag: 4.4.1
 Requires at least: 6.6
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
 License: GPLv2 or later
 
@@ -125,6 +125,17 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 4.4.1 =
+
+*Release Date - 20 August 2026*
+
+* Improvements:
+	* Setting defaults are now resolved from a single lightweight list instead of building every settings field, so reading an option early in the page load no longer risks loading translations too early.
+
+* Bug fixes:
+	* Fixed the settings wizard silently dropping repeater field rows on save.
+	* Fixed settings not saving when submitted without a referer (e.g. via REST or WP-CLI).
+
 = 4.4.0 =
 
 *Release Date - 2 August 2026*
@@ -222,6 +233,9 @@ Read more in the [Better Search Pro 4.3.0 release post](https://webberzone.com/a
 For previous changelog entries, please refer to the separate changelog.txt file or [Github Releases page](https://github.com/WebberZone/better-search/releases)
 
 == Upgrade Notice ==
+
+= 4.4.1 =
+Fixes the settings wizard dropping repeater rows and settings not saving without a referer.
 
 = 4.4.0 =
 Adds the Feature Manager, settings search, "Did you mean" suggestions and search redirects, alongside Settings API improvements and bug fixes.
