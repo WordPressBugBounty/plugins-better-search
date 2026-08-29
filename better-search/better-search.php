@@ -13,7 +13,7 @@
  * Plugin Name: Better Search
  * Plugin URI:  https://webberzone.com/plugins/better-search/
  * Description: Replace the default WordPress search with a contextual search. Search results are sorted by relevancy ensuring a better visitor search experience.
- * Version:     4.4.1
+ * Version:     4.4.2
  * Author:      WebberZone
  * Author URI:  https://webberzone.com/
  * Text Domain: better-search
@@ -34,7 +34,7 @@ if ( ! defined( 'BETTER_SEARCH_VERSION' ) ) {
 	 *
 	 * @since 2.9.3
 	 */
-	define( 'BETTER_SEARCH_VERSION', '4.4.1' );
+	define( 'BETTER_SEARCH_VERSION', '4.4.2' );
 }
 
 if ( ! defined( 'BETTER_SEARCH_PLUGIN_DIR' ) ) {
@@ -143,6 +143,12 @@ if ( ! has_action( 'admin_notices', __NAMESPACE__ . '\bsearch_show_deactivation_
 			}
 		}
 	);
+}
+
+// Load the Composer autoloader (includes the Freemius SDK).
+$composer_autoload = plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
+if ( file_exists( $composer_autoload ) ) {
+	require_once $composer_autoload;
 }
 
 if ( ! function_exists( __NAMESPACE__ . '\bsearch_freemius' ) ) {
