@@ -13,7 +13,7 @@
  * Plugin Name: Better Search
  * Plugin URI:  https://webberzone.com/plugins/better-search/
  * Description: Replace the default WordPress search with a contextual search. Search results are sorted by relevancy ensuring a better visitor search experience.
- * Version:     4.4.2
+ * Version:     4.4.3
  * Author:      WebberZone
  * Author URI:  https://webberzone.com/
  * Text Domain: better-search
@@ -34,7 +34,7 @@ if ( ! defined( 'BETTER_SEARCH_VERSION' ) ) {
 	 *
 	 * @since 2.9.3
 	 */
-	define( 'BETTER_SEARCH_VERSION', '4.4.2' );
+	define( 'BETTER_SEARCH_VERSION', '4.4.3' );
 }
 
 if ( ! defined( 'BETTER_SEARCH_PLUGIN_DIR' ) ) {
@@ -202,6 +202,7 @@ if ( ! function_exists( 'bsearch_get_settings' ) ) {
 
 // Register activation hook.
 register_activation_hook( __FILE__, __NAMESPACE__ . '\Admin\Activator::activation_hook' );
+register_deactivation_hook( __FILE__, __NAMESPACE__ . '\Admin\Activator::deactivation_hook' );
 
 /**
  * Declare $bsearch_settings global so that it can be accessed in every function

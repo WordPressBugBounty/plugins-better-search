@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.4.2
+Stable tag: 4.4.3
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -125,6 +125,28 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 4.4.3 =
+
+*Release Date - 5 September 2026*
+
+* Improvements:
+	* Improved multisite and admin performance by caching Better Search table-existence checks, network table discovery, and FULLTEXT index status checks, eliminating repeated `SHOW TABLES` and `SHOW INDEX` metadata queries while adding live health checks and safe recovery when tables change outside WordPress.
+	* Reduced database work for FULLTEXT searches that include post meta or comments by using existence checks instead of row-multiplying joins.
+	* Improved negative searches by separating excluded terms from the FULLTEXT match and applying them across the enabled search fields.
+	* Added the `bsearch_search_meta_keys` filter to limit meta searches to selected keys.
+	* Added short-lived caching for live-search responses and heatmap counts, and avoided unnecessary result-count queries for live search.
+	* [Pro] Reduced memory usage during spelling-dictionary rebuilds by processing titles in batches and keeping the existing dictionary available until the replacement is ready.
+	* [Pro] Prevented repeated saves of the same post from inflating spelling-dictionary frequencies.
+	* [Pro] Optimized custom-table result counts by skipping relevance-score calculation when no relevance threshold is applied.
+
+* Bug fixes:
+	* Fixed negative-only searches returning no results and negative terms being ignored in natural-language FULLTEXT searches.
+	* Fixed the dashboard's "Last 7 days", "Last 14 days" and "Last 30 days" tabs covering one day more than their labels, since the date range is inclusive of both endpoints.
+	* [Pro] Preserved negative-term exclusions when fuzzy LIKE matching is enabled.
+	* [Pro] Fixed spelling-dictionary rebuilds temporarily emptying the dictionary and ensured invalid batch sizes cannot stall a rebuild.
+	* [Pro] Fixed spelling-dictionary rebuild failures when words differ only by case or accents.
+	* [Pro] Fixed custom-table indexing missing taxonomy and indexed-meta changes made outside a post save (quick edit, SEO plugin primary-term changes), and moved large term refreshes to bounded background batches.
+
 = 4.4.2 =
 
 * Improvements:
@@ -176,5 +198,5 @@ For previous changelog entries, please refer to the separate changelog.txt file 
 
 == Upgrade Notice ==
 
-= 4.4.2 =
-Fixes stopword regex, sort-by-date for LIKE/short-term searches, and paired-plugin uninstall data loss, plus Settings API 3.0.0 sanitization and a new whole-word JS highlighter filter.
+= 4.4.3 =
+Improves search and multisite performance, strengthens negative-term handling, adds configurable meta-key filtering, and fixes spelling-dictionary and dashboard issues.

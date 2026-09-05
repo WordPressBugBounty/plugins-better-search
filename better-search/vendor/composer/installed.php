@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
-        'name' => 'webberzone/better-search-pro',
+        'name' => 'webberzone/better-search',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'd67949354f9afe0f920d364a260baadc4f8bd6ac',
+        'reference' => 'f6ed41de381711abb27e24034396d873f863314b',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -19,10 +19,10 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'webberzone/better-search-pro' => array(
+        'webberzone/better-search' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'd67949354f9afe0f920d364a260baadc4f8bd6ac',
+            'reference' => 'f6ed41de381711abb27e24034396d873f863314b',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
