@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.4.3
+Stable tag: 4.4.4
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -125,6 +125,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 4.4.4 =
+
+Release date: 10 September 2026
+
+**Fixed**
+
+* `the_bsearch_post_type()` and `get_bsearch_post_type()` filtered their output through the term list hooks instead of the `the_bsearch_post_type` and `get_bsearch_post_type` filters.
+
 = 4.4.3 =
 
 *Release Date - 5 September 2026*
@@ -198,5 +206,5 @@ For previous changelog entries, please refer to the separate changelog.txt file 
 
 == Upgrade Notice ==
 
-= 4.4.3 =
-Improves search and multisite performance, strengthens negative-term handling, adds configurable meta-key filtering, and fixes spelling-dictionary and dashboard issues.
+= 4.4.4 =
+Fixes the post type template functions using the wrong filter hooks.
