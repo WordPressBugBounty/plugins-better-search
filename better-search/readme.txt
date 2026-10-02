@@ -2,8 +2,8 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.4.4
-Requires at least: 6.8
+Stable tag: 4.5.0
+Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
 License: GPLv2 or later
@@ -73,6 +73,14 @@ Better Search is one of the many plugins developed by WebberZone. Check out our 
 * [WebberZone Snippetz](https://wordpress.org/plugins/add-to-all/) - The ultimate snippet manager for WordPress to create and manage custom HTML, CSS or JS code snippets
 * [Auto-Close](https://wordpress.org/plugins/autoclose/) - Automatically close comments, pingbacks and trackbacks and manage revisions on your WordPress site
 
+= Multilingual sites =
+
+Better Search supports WPML and Polylang and detects TranslatePress's current language when caching search results. Caches are separated by language so results from one language are not reused in another.
+
+TranslatePress translates the displayed results with the rest of the page; it does not create a separate search index of translated text. Better Search Pro's core WordPress REST search responses and live-search suggestions are translated using the active TranslatePress language.
+
+Search-term highlighting can prevent TranslatePress from translating a complete title because it splits the text with markup. Disable search-term highlighting if translated titles remain in the default language.
+
 == Screenshots ==
 
 1. Better Search Dashboard
@@ -122,89 +130,62 @@ Better Search includes a very cool profanity filter using the script from [Banbu
 
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/better-search)
 
-
 == Changelog ==
 
-= 4.4.4 =
+= 4.5.0 =
 
-Release date: 10 September 2026
+Release date: 2 October 2026
+Release post: https://webberzone.com/announcements/better-search-v4-5/
+
+**Added**
+
+* Added WordPress Abilities API support for site searches, with an option to disable it in the Features tab.
+* Added a Status section to Tools showing database, index and cache health.
+* Added a setting to restrict search results to selected terms.
+* Added `*` wildcard support to filtered words, so `spam*` also blocked "spammer".
+* Added translated titles and language-specific links to TranslatePress live-search suggestions.
+* Added the `data-bsearch-live-search="off"` form attribute, so forms with their own live search did not show a second list of suggestions.
+* [Pro] Added abilities for popular search terms, spelling suggestions and cache clearing.
+* [Pro] Added optional AI answers grounded in Better Search results, with source links, cached answers, usage limits and a Content gaps report.
+* [Pro] Added WP-CLI commands for AI questions, answer-cache management and Content gaps.
+* [Pro] Expanded Tools status with custom-table and AI-provider health.
+* [Pro] Added optional recency weighting, disabled by default; existing custom-table indexes required a one-time backfill from Tools.
+* [Pro] Added optional ranking weights for slug, metadata, author and comment matches.
+* [Pro] Added wildcard search redirects, so `help*` could match multiple search phrases.
+
+**Changed**
+
+* Raised the minimum WordPress version to 6.9 for the Abilities API.
+* Improved keyboard and screen reader access to settings and repeater controls.
+* [Pro] Expanded include and exclude settings to all public taxonomies.
+* [Pro] Improved custom-table search performance on large sites.
+* [Pro] Moved the REST API search setting to the Features tab.
+
+**Security**
+
+* Hardened thumbnail dimensions to prevent markup injection through custom image sizes.
 
 **Fixed**
 
-* `the_bsearch_post_type()` and `get_bsearch_post_type()` filtered their output through the term list hooks instead of the `the_bsearch_post_type` and `get_bsearch_post_type` filters.
+* Cached search results could appear in the wrong language on WPML, Polylang and TranslatePress sites.
+* Searches covering taxonomies, metadata, authors or comments could time out on large sites.
+* Common words were not excluded on sites without a Better Search translation.
+* Network search caches remained stale after settings changes or manual cache clearing, and nested queries could prevent caching.
+* Cache-clearing confirmation and error messages were missing.
+* Live search suggestions could reopen after pressing Escape or submitting the search.
+* [Pro] Custom-table searches ignored some search settings, taxonomy weights and term restrictions.
+* [Pro] Custom-table searches could show empty pages, and multisite searches could repeat, skip or return posts from the wrong site.
+* [Pro] Multisite custom-table searches returned no results when `posts_per_page` was `-1`.
+* [Pro] Custom-table schema and taxonomy indexes were not reliably updated.
+* [Pro] Fuzzy searches could ignore Boolean operators or match common words, returning too many results.
+* [Pro] Multisite and fuzzy searches could omit posts matching slugs, taxonomies, metadata, authors or comments.
+* [Pro] Search terms containing a dollar sign followed by a digit were omitted from relevance scoring.
 
-= 4.4.3 =
+= Earlier versions =
 
-*Release Date - 5 September 2026*
-
-* Improvements:
-	* Improved multisite and admin performance by caching Better Search table-existence checks, network table discovery, and FULLTEXT index status checks, eliminating repeated `SHOW TABLES` and `SHOW INDEX` metadata queries while adding live health checks and safe recovery when tables change outside WordPress.
-	* Reduced database work for FULLTEXT searches that include post meta or comments by using existence checks instead of row-multiplying joins.
-	* Improved negative searches by separating excluded terms from the FULLTEXT match and applying them across the enabled search fields.
-	* Added the `bsearch_search_meta_keys` filter to limit meta searches to selected keys.
-	* Added short-lived caching for live-search responses and heatmap counts, and avoided unnecessary result-count queries for live search.
-	* [Pro] Reduced memory usage during spelling-dictionary rebuilds by processing titles in batches and keeping the existing dictionary available until the replacement is ready.
-	* [Pro] Prevented repeated saves of the same post from inflating spelling-dictionary frequencies.
-	* [Pro] Optimized custom-table result counts by skipping relevance-score calculation when no relevance threshold is applied.
-
-* Bug fixes:
-	* Fixed negative-only searches returning no results and negative terms being ignored in natural-language FULLTEXT searches.
-	* Fixed the dashboard's "Last 7 days", "Last 14 days" and "Last 30 days" tabs covering one day more than their labels, since the date range is inclusive of both endpoints.
-	* [Pro] Preserved negative-term exclusions when fuzzy LIKE matching is enabled.
-	* [Pro] Fixed spelling-dictionary rebuilds temporarily emptying the dictionary and ensured invalid batch sizes cannot stall a rebuild.
-	* [Pro] Fixed spelling-dictionary rebuild failures when words differ only by case or accents.
-	* [Pro] Fixed custom-table indexing missing taxonomy and indexed-meta changes made outside a post save (quick edit, SEO plugin primary-term changes), and moved large term refreshes to bounded background batches.
-
-= 4.4.2 =
-
-* Improvements:
-	* Updated the Settings API to version 3.0.0, adding missing sanitizers for radio, select, wysiwyg, file, password, css, html and other field types, and preventing unregistered submitted settings from being saved raw.
-	* Added the `bsearch_highlight_use_boundaries` filter to the client-side highlighter, allowing themes to enable whole-word-only matching on cached pages.
-
-* Bug fixes:
-	* Fixed stopword stripping breaking with a PHP `preg_replace()` warning, and silently leaving stopwords in place, when the translated stopword list or the `wp_search_stopwords` filter contained a `/`.
-	* [Pro] Fixed the ORDER BY clause being silently rewritten to `score DESC` when full-text search was unavailable, which discarded the "Sort by date" ordering on short-term and LIKE-based searches.
-	* Fixed plugin data being deleted when uninstalling one version while its paired free or Pro counterpart was active.
-
-= 4.4.1 =
-
-*Release Date - 20 August 2026*
-
-* Improvements:
-	* Setting defaults are now resolved from a single lightweight list instead of building every settings field, so reading an option early in the page load no longer risks loading translations too early.
-
-* Bug fixes:
-	* Fixed the settings wizard silently dropping repeater field rows on save.
-	* Fixed settings not saving when submitted without a referer (e.g. via REST or WP-CLI).
-
-= 4.4.0 =
-
-*Release Date - 2 August 2026*
-
-Read more in the [Better Search v4.4.0 release post](https://webberzone.com/announcements/better-search-v4-4-0/).
-
-* Features:
-	* Added a Feature Manager to toggle optional features from a new Features tab.
-	* [Pro] Added "Did you mean" suggestions for zero-result searches, with Suggest and Auto-correct modes.
-	* [Pro] Added search redirects with exact or contains matching and 301 or 302 status codes.
-	* Added search to quickly find options across settings tabs.
-
-* Enhancements:
-	* Added the `bsearch_pre_index_content_parts` filter to modify content before it is stored in custom search tables.
-	* Standardized FULLTEXT index names across database tools.
-	* Updated the Settings API to version 2.10.1 and refreshed admin assets.
-
-* Bug fixes:
-	* Fixed settings page layout and field rendering issues.
-	* Fixed disabled Pro settings being discarded or remaining editable in the free plugin.
-	* Fixed validation preventing settings from saving when required fields were inside collapsed repeater rows.
-	* [Pro] Fixed the setup wizard changing steps while custom tables were being indexed.
-	* Fixed database checks not restoring the previous error display state.
-	* Fixed highlighting fallback behavior for queries containing an unclosed quote.
-
-For previous changelog entries, please refer to the separate changelog.txt file or [Github Releases page](https://github.com/WebberZone/better-search/releases)
+For the changelog of earlier versions, please refer to the [releases page on GitHub](https://github.com/WebberZone/better-search/releases).
 
 == Upgrade Notice ==
 
-= 4.4.4 =
-Fixes the post type template functions using the wrong filter hooks.
+= 4.5.0 =
+Security and performance release. Adds optional Pro AI answers and ranking controls, and fixes multilingual caching and search accuracy. Requires WordPress 6.9 or later.

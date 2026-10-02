@@ -141,6 +141,7 @@ class Activator {
 	 * @since 4.2.0
 	 */
 	public static function single_deactivate() {
+		wp_clear_scheduled_hook( 'bsearch_ai_cleanup_log' );
 		$settings = get_option( 'bsearch_settings' );
 
 		if ( ! empty( $settings['uninstall_indices_deactivate'] ) ) {
@@ -184,6 +185,7 @@ class Activator {
 
 		$tables[] = $wpdb->prefix . self::$table_name;
 		$tables[] = $wpdb->prefix . self::$table_name_daily;
+		$tables[] = $wpdb->prefix . 'bsearch_ai_questions';
 		Db::clear_network_table_status_cache();
 
 		return $tables;

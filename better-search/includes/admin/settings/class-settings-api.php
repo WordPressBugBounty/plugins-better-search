@@ -266,6 +266,9 @@ class Settings_API {
 			'button_label'          => 'Choose File',
 			'previous_saved'        => 'Previously saved',
 			'repeater_new_item'     => 'New Item',
+			'repeater_move_up'      => 'Move item up',
+			'repeater_move_down'    => 'Move item down',
+			'repeater_remove_item'  => 'Remove item',
 			'required_label'        => 'Required',
 			'tom_select_no_results' => 'No results found for "%s"',
 			'search_placeholder'    => 'Search settings',
@@ -655,6 +658,15 @@ class Settings_API {
 				$name     = $args['name'];
 				$type     = isset( $args['type'] ) ? $args['type'] : 'text';
 				$callback = method_exists( $this->settings_form, "callback_{$type}" ) ? array( $this->settings_form, "callback_{$type}" ) : array( $this->settings_form, 'callback_missing' );
+				$title    = $name;
+
+				if ( ! in_array( $type, array( 'header', 'repeater' ), true ) ) {
+					$title = sprintf(
+						'<label for="%1$s">%2$s</label>',
+						esc_attr( $this->settings_form->get_field_id( $args ) ),
+						wp_kses_post( $name )
+					);
+				}
 
 				// Tag header rows so the settings search can group fields under them.
 				if ( 'header' === $type ) {
@@ -663,7 +675,7 @@ class Settings_API {
 
 				add_settings_field(
 					"{$settings_key}[{$id}]",     // ID of the settings field. We save it within the settings array.
-					$name,                        // Label of the setting.
+					$title,                       // Label of the setting.
 					$callback,                    // Function to handle the setting.
 					"{$settings_key}_{$section}", // Page to display the setting. In our case it is the section as defined above.
 					"{$settings_key}_{$section}", // Name of the section.

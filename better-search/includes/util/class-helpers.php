@@ -161,16 +161,15 @@ class Helpers {
 	 * Apply censorship to $message, replacing $badwords with $censor_char.
 	 *
 	 * @since 3.3.0
+	 * @since 4.5.0 Supports * wildcards in bad words.
 	 *
 	 * @param  string $message      String to be censored.
-	 * @param  array  $badwords    Array of badwords.
+	 * @param  array  $badwords    Array of badwords. Use * to match any run of letters or digits.
 	 * @param  string $censor_char String which replaces bad words. If it's more than 1-char long, a random string will be generated from these chars. Default: '*'.
 	 * @param  bool   $whole_words Filter whole worlds only.
 	 * @return array  Array containing the original string at `orig` and the censored string at `clean`.
 	 */
 	public static function censor_string( $message, $badwords, $censor_char = '*', $whole_words = false ) {
-
-		$replacement = array();
 
 		$leet_replace      = array();
 		$leet_replace['a'] = '(a|a\.|a\-|4|@|Á|á|À|Â|à|Â|â|Ä|ä|Ã|ã|Å|å|α|Δ|Λ|λ)';
@@ -210,21 +209,36 @@ class Helpers {
 			$boundary = '';
 		}
 
-		// Count the bad words.
-		$no_of_badwords = count( $badwords );
+		// Bytes 0x80-0xFF let the wildcard span multibyte UTF-8 letters without the u modifier.
+		$wildcard = '[\w\x80-\xFF]*';
 
-		for ( $x = 0; $x < $no_of_badwords; $x++ ) {
+		$patterns = array();
+		foreach ( (array) $badwords as $badword ) {
+			$badword = preg_replace( '/\*+/', '*', trim( (string) $badword, " \n\r\t\v\0" ) );
 
-			$replacement[ $x ] = $is_one_char
-			? str_repeat( $censor_char, strlen( $badwords[ $x ] ) )
-			: self::rand_censor( $censor_char, strlen( $badwords[ $x ] ) );
+			// A term made only of wildcards would block every search.
+			if ( '' === trim( $badword, '*' ) ) {
+				continue;
+			}
 
-			$badwords[ $x ] = '/' . $boundary . str_ireplace( array_keys( $leet_replace ), array_values( $leet_replace ), $badwords[ $x ] ) . $boundary . '/i';
+			$pattern = str_ireplace( array_keys( $leet_replace ), array_values( $leet_replace ), preg_quote( $badword, '/' ) );
+			$pattern = str_replace( '\*', $wildcard, $pattern );
+
+			// The lookbehind stops a leading wildcard from rescanning every position in a long word.
+			$patterns[] = '/' . ( '*' === $badword[0] ? '(?:(?<![\w\x80-\xFF])|\G)' : $boundary ) . $pattern . ( '*' === substr( $badword, -1 ) ? '' : $boundary ) . '/i';
 		}
 
 		$newstring          = array();
 		$newstring['orig']  = $message;
-		$newstring['clean'] = preg_replace( $badwords, $replacement, $newstring['orig'] );
+		$newstring['clean'] = empty( $patterns ) ? $message : preg_replace_callback(
+			$patterns,
+			function ( $matches ) use ( $censor_char, $is_one_char ) {
+				$length = mb_strlen( $matches[0], 'UTF-8' );
+
+				return $is_one_char ? str_repeat( $censor_char, $length ) : self::rand_censor( $censor_char, $length );
+			},
+			$message
+		);
 
 		return $newstring;
 	}
@@ -741,6 +755,20 @@ class Helpers {
 	}
 
 	/**
+	 * Get WordPress's search stopwords, translated for the site's locale.
+	 *
+	 * @since 4.5.0
+	 *
+	 * @return string[] Stopwords.
+	 */
+	public static function get_wp_search_stopwords(): array {
+		$get_search_stopwords = new \ReflectionMethod( 'WP_Query', 'get_search_stopwords' );
+		$get_search_stopwords->setAccessible( true );
+
+		return (array) $get_search_stopwords->invoke( new WP_Query() );
+	}
+
+	/**
 	 * Strip stopwords from text.
 	 *
 	 * @since 4.2.0
@@ -754,10 +782,7 @@ class Helpers {
 	public static function strip_stopwords( $subject = '', $search = '', $replace = '' ): string {
 		// If no search terms provided, get WordPress stopwords.
 		if ( empty( $search ) ) {
-			$get_search_stopwords = new \ReflectionMethod( 'WP_Query', 'get_search_stopwords' );
-			$get_search_stopwords->setAccessible( true );
-			$search = $get_search_stopwords->invoke( new WP_Query() );
-			$search = array_merge( $search, array( 'from', 'where' ) );
+			$search = array_merge( self::get_wp_search_stopwords(), array( 'from', 'where' ) );
 		}
 
 		// Drop empty entries so a trailing comma in a translated list cannot create an empty alternation branch.
@@ -939,6 +964,23 @@ class Helpers {
 		 * @param string       $term   Term name.
 		 */
 		return apply_filters( 'bsearch_get_primary_term', $return, $post, $term );
+	}
+
+	/**
+	 * Check if the site runs on SQLite rather than MySQL/MariaDB.
+	 *
+	 * @since 4.5.0
+	 *
+	 * @return bool True when the database layer is SQLite.
+	 */
+	public static function is_sqlite(): bool {
+		global $wpdb;
+
+		if ( defined( 'DB_ENGINE' ) && 'sqlite' === constant( 'DB_ENGINE' ) ) {
+			return true;
+		}
+
+		return false !== stripos( get_class( $wpdb ), 'sqlite' );
 	}
 
 	/**

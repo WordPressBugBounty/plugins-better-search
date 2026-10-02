@@ -47,6 +47,29 @@ function bsearch_delete_data() {
 
 	$settings = get_option( 'bsearch_settings' );
 
+	$ai_log_class = '\\WebberZone\\Better_Search\\Pro\\AI\\Question_Log';
+	$ai_log_file  = __DIR__ . '/includes/pro/ai/class-question-log.php';
+	if ( ! class_exists( $ai_log_class ) && file_exists( $ai_log_file ) ) {
+		require_once $ai_log_file;
+	}
+	if ( class_exists( $ai_log_class ) ) {
+		$ai_log_class::uninstall();
+	} else {
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . $wpdb->prefix . 'bsearch_ai_questions' ); //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.DirectQuery
+		delete_option( 'bsearch_ai_db_version' );
+		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( '_transient_bsearch_ai_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_bsearch_ai_' ) . '%',
+				$wpdb->esc_like( 'bsearch_ai_daily_usage_' ) . '%',
+				$wpdb->esc_like( 'bsearch_ai_rl_' ) . '%'
+			)
+		);
+		wp_clear_scheduled_hook( 'bsearch_ai_cleanup_log' );
+	}
+	delete_option( 'bsearch_ai_content_version' );
+
 	if ( defined( 'BETTER_SEARCH_DELETE_DATA' ) && BETTER_SEARCH_DELETE_DATA ) {
 		$wpdb->query( 'DROP TABLE ' . $wpdb->prefix . 'bsearch' ); //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->query( 'DROP TABLE ' . $wpdb->prefix . 'bsearch_daily' ); //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.DirectQuery
@@ -87,6 +110,13 @@ function bsearch_delete_data() {
 	// Delete all plugin transients.
 	bsearch_delete_transients();
 
+	/**
+	 * Fires after the plugin data for the current site has been deleted on uninstall.
+	 *
+	 * On multisite this runs once per site.
+	 *
+	 * @since 4.2.0
+	 */
 	do_action( 'bsearch_delete_data' );
 }
 

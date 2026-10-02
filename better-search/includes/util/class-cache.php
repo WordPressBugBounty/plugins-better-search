@@ -9,6 +9,8 @@
 
 namespace WebberZone\Better_Search\Util;
 
+use WebberZone\Better_Search\Frontend\Language_Handler;
+
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
@@ -41,7 +43,7 @@ class Cache {
 		}
 		check_ajax_referer( 'bsearch-admin', 'security' );
 
-		$count = $this->delete();
+		$count = self::delete_all();
 
 		wp_send_json_success(
 			array(
@@ -63,7 +65,7 @@ class Cache {
 	public static function delete( $transients = array(), $network = false ) {
 		$loop = 0;
 
-		$default_transients = self::get_keys();
+		$default_transients = self::get_keys( $network );
 
 		if ( ! empty( $transients ) ) {
 			$transients = array_intersect( $default_transients, (array) $transients );
@@ -77,32 +79,61 @@ class Cache {
 				++$loop;
 			}
 		}
+		do_action( 'bsearch_cache_cleared', $network );
 		return $loop;
+	}
+
+	/**
+	 * Delete every Better Search cache entry, in both the blog and the network scope.
+	 *
+	 * Search results are cached as blog transients by the ordinary query path and as site
+	 * transients by the custom-table path, so clearing only one scope leaves the other serving
+	 * results built from superseded settings.
+	 *
+	 * @since 4.5.0
+	 *
+	 * @return int Number of transients deleted.
+	 */
+	public static function delete_all() {
+		return self::delete() + self::delete( array(), true );
 	}
 
 	/**
 	 * Get the default meta keys used for the cache
 	 *
 	 * @since 3.3.0
+	 * @since 4.5.0 Added the $network parameter.
 	 *
+	 * @param bool $network Look up network (site) transients instead of blog transients.
 	 * @return  array   Transient meta keys
 	 */
-	public static function get_keys() {
+	public static function get_keys( $network = false ) {
 
 		global $wpdb;
 
-		$keys = array();
+		$keys   = array();
+		$prefix = $network ? '_site_transient_bs_' : '_transient_bs_';
 
-		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$wpdb->esc_like( '_transient_bs_' ) . '%'
-			)
-		);
+		if ( $network && is_multisite() ) {
+			$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare(
+					"SELECT meta_key AS option_name FROM {$wpdb->sitemeta} WHERE site_id = %d AND meta_key LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					get_current_network_id(),
+					$wpdb->esc_like( $prefix ) . '%'
+				)
+			);
+		} else {
+			$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare(
+					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$wpdb->esc_like( $prefix ) . '%'
+				)
+			);
+		}
 
 		if ( is_array( $results ) ) {
 			foreach ( $results as $result ) {
-				$keys[] = str_replace( '_transient_', '', $result->option_name );
+				$keys[] = substr( $result->option_name, strlen( $network ? '_site_transient_' : '_transient_' ) );
 			}
 		}
 
@@ -110,10 +141,12 @@ class Cache {
 		 * Filters the list of Better Search cache keys found in the options table.
 		 *
 		 * @since 4.0.0
+		 * @since 4.5.0 Added the $network parameter.
 		 *
-		 * @param string[] $keys Cache keys without the transient prefix.
+		 * @param string[] $keys    Cache keys without the transient prefix.
+		 * @param bool     $network Whether network (site) transients were looked up.
 		 */
-		return apply_filters( 'bsearch_cache_get_keys', $keys );
+		return apply_filters( 'bsearch_cache_get_keys', $keys, $network );
 	}
 
 	/**
@@ -208,7 +241,7 @@ class Cache {
 		}
 
 		// Generate cache key.
-		return sprintf( 'bs_cache_%1$s_%2$s', md5( wp_json_encode( $args ) ), $context );
+		return sprintf( 'bs_cache_%1$s_%2$s', md5( Language_Handler::get_cache_language() . '|' . wp_json_encode( $args ) ), $context );
 	}
 
 	/**

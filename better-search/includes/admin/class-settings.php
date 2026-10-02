@@ -130,6 +130,9 @@ class Settings {
 			'modified_legend'      => esc_html__( 'Setting modified from its default value', 'better-search' ),
 			'default_label'        => esc_html__( 'Default', 'better-search' ),
 			'default_none'         => esc_html__( 'None', 'better-search' ),
+			'repeater_move_up'     => esc_html__( 'Move item up', 'better-search' ),
+			'repeater_move_down'   => esc_html__( 'Move item down', 'better-search' ),
+			'repeater_remove_item' => esc_html__( 'Remove item', 'better-search' ),
 		);
 
 		/**
@@ -211,6 +214,8 @@ class Settings {
 			'enable_shortcodes'         => 1,
 			'enable_block_patterns'     => 1,
 			'enable_live_search'        => 0,
+			'features_api_header'       => '',
+			'enable_abilities_api'      => 1,
 			'pro_features_header'       => '',
 			'enable_fuzzy_search'       => 1,
 			'enable_did_you_mean'       => 0,
@@ -254,6 +259,12 @@ class Settings {
 			'weight_taxonomy_category'  => 0,
 			'weight_taxonomy_post_tag'  => 0,
 			'weight_taxonomy_default'   => 0,
+			'weight_slug'               => 0,
+			'weight_meta'               => 0,
+			'weight_authors'            => 0,
+			'weight_comments'           => 0,
+			'weight_recency'            => 0,
+			'recency_halflife'          => 180,
 			'use_precomputed_tax_score' => 0,
 			'inclusion_header'          => '',
 			'search_slug'               => 0,
@@ -262,13 +273,14 @@ class Settings {
 			'search_meta'               => 0,
 			'search_authors'            => 0,
 			'search_comments'           => 0,
+			'include_header'            => '',
+			'include_cat_slugs'         => '',
 			'exclude_header'            => '',
 			'exclude_protected_posts'   => 1,
 			'exclude_front_page'        => 0,
 			'exclude_posts_page'        => 0,
 			'exclude_post_ids'          => '',
 			'exclude_cat_slugs'         => '',
-			'exclude_categories'        => '',
 			'banned_header'             => '',
 			'badwords'                  => 'anal,anus,bastard,beastiality,bestiality,bewb,bitch,blow,blumpkin,boob,cawk,cock,choad,cooter,cornhole,cum,cunt,dick,dildo,dong,dyke,douche,fag,faggot,fart,foreskin,fuck,fuk,gangbang,gook,handjob,homo,honkey,humping,jiz,jizz,kike,kunt,labia,muff,nigger,nutsack,pen1s,penis,piss,poon,poop,porn,punani,pussy,queef,quim,rimjob,rape,rectal,rectum,semen,shit,slut,spick,spoo,spooge,taint,titty,titties,twat,vagina,vulva,wank,whore',
 			'banned_whole_words'        => 1,
@@ -356,6 +368,22 @@ class Settings {
 	}
 
 	/**
+	 * Append an availability note to the recency settings when the database cannot support them.
+	 *
+	 * @since 4.5.0
+	 *
+	 * @param  string $desc Field description.
+	 * @return string Field description.
+	 */
+	private static function recency_field_desc( string $desc ): string {
+		if ( ! Helpers::is_sqlite() ) {
+			return $desc;
+		}
+
+		return $desc . ' <strong>' . esc_html__( 'Unavailable on SQLite: the date calculation this uses is not supported, so the setting is ignored.', 'better-search' ) . '</strong>';
+	}
+
+	/**
 	 * Retrieve the array of General settings
 	 *
 	 * @since 3.3.0
@@ -370,14 +398,6 @@ class Settings {
 				'desc'    => esc_html__( "Use your theme's native search template instead of the plugin's own layout, while still sorting results by relevance.", 'better-search' ),
 				'type'    => 'checkbox',
 				'default' => true,
-			),
-			'enable_rest_api'     => array(
-				'id'      => 'enable_rest_api',
-				'name'    => esc_html__( 'Enable REST API', 'better-search' ),
-				'desc'    => esc_html__( 'When enabled, the REST API endpoint (search) will display relevant search results.', 'better-search' ),
-				'type'    => 'checkbox',
-				'default' => false,
-				'pro'     => true,
 			),
 			'track_popular'       => array(
 				'id'      => 'track_popular',
@@ -478,6 +498,27 @@ class Settings {
 				'desc'    => esc_html__( 'Enables the live search feature on the search form, including its AJAX endpoint.', 'better-search' ),
 				'type'    => 'checkbox',
 				'default' => false,
+			),
+			'features_api_header'     => array(
+				'id'   => 'features_api_header',
+				'name' => '<h3>' . esc_html__( 'API integrations', 'better-search' ) . '</h3>',
+				'desc' => esc_html__( 'Control Better Search integrations exposed through WordPress APIs.', 'better-search' ),
+				'type' => 'header',
+			),
+			'enable_rest_api'         => array(
+				'id'      => 'enable_rest_api',
+				'name'    => esc_html__( 'REST API search integration', 'better-search' ),
+				'desc'    => esc_html__( 'Uses Better Search relevance for WordPress REST API search requests.', 'better-search' ),
+				'type'    => 'checkbox',
+				'default' => false,
+				'pro'     => true,
+			),
+			'enable_abilities_api'    => array(
+				'id'      => 'enable_abilities_api',
+				'name'    => esc_html__( 'WordPress Abilities API', 'better-search' ),
+				'desc'    => esc_html__( 'Registers Better Search abilities with WordPress when the Abilities API is available.', 'better-search' ),
+				'type'    => 'checkbox',
+				'default' => 1,
 			),
 			'pro_features_header'     => array(
 				'id'   => 'pro_features_header',
@@ -843,6 +884,70 @@ class Settings {
 				'size'    => 'small',
 				'pro'     => true,
 			),
+			'weight_slug'               => array(
+				'id'      => 'weight_slug',
+				'name'    => esc_html__( 'Post slug', 'better-search' ),
+				'desc'    => esc_html__( 'Score added when the post slug matches. Requires Search Post slug below. Unlike the title and content weights, this adds a flat score to any post whose slug matches.', 'better-search' ),
+				'type'    => 'number',
+				'default' => 0,
+				'min'     => '0',
+				'size'    => 'small',
+				'pro'     => true,
+			),
+			'weight_meta'               => array(
+				'id'      => 'weight_meta',
+				'name'    => esc_html__( 'Meta fields', 'better-search' ),
+				'desc'    => esc_html__( 'Score added when a meta value matches. Requires Search Meta below. Scoring meta matches adds a subquery for every candidate post, so leave this at 0 on sites with a large postmeta table.', 'better-search' ),
+				'type'    => 'number',
+				'default' => 0,
+				'min'     => '0',
+				'size'    => 'small',
+				'pro'     => true,
+			),
+			'weight_authors'            => array(
+				'id'      => 'weight_authors',
+				'name'    => esc_html__( 'Authors', 'better-search' ),
+				'desc'    => esc_html__( 'Score added when the author name matches. Requires Search Authors below.', 'better-search' ),
+				'type'    => 'number',
+				'default' => 0,
+				'min'     => '0',
+				'size'    => 'small',
+				'pro'     => true,
+			),
+			'weight_comments'           => array(
+				'id'      => 'weight_comments',
+				'name'    => esc_html__( 'Comments', 'better-search' ),
+				'desc'    => esc_html__( 'Score added when a comment matches. Requires Search Comments below. Scoring comment matches adds a subquery for every candidate post, so leave this at 0 on sites with a large comments table.', 'better-search' ),
+				'type'    => 'number',
+				'default' => 0,
+				'min'     => '0',
+				'size'    => 'small',
+				'pro'     => true,
+			),
+			'weight_recency'            => array(
+				'id'       => 'weight_recency',
+				'name'     => esc_html__( 'Recency boost (%)', 'better-search' ),
+				'desc'     => self::recency_field_desc( esc_html__( 'Blend post age into the ranking. 0 ranks purely by relevance. Raise it to favor fresher content: at a high enough boost a newer result with lower relevance will outrank an older, more relevant one. A strongly relevant old result can still outrank a weakly relevant new one, so raise the boost to favor freshness and raise the half-life below to keep older content competitive for longer. Relevance percentages and the minimum relevance filter keep using the unboosted score.', 'better-search' ) ),
+				'type'     => 'number',
+				'default'  => 0,
+				'min'      => '0',
+				'max'      => '200',
+				'size'     => 'small',
+				'pro'      => true,
+				'disabled' => Helpers::is_sqlite(),
+			),
+			'recency_halflife'          => array(
+				'id'       => 'recency_halflife',
+				'name'     => esc_html__( 'Recency half-life (days)', 'better-search' ),
+				'desc'     => self::recency_field_desc( esc_html__( 'Post age at which half of the recency boost has decayed. Larger values keep older content competitive for longer. Minimum 1 day. Values below 7 days recalculate hourly instead of daily.', 'better-search' ) ),
+				'type'     => 'number',
+				'default'  => 180,
+				'min'      => '1',
+				'max'      => '36500',
+				'size'     => 'small',
+				'pro'      => true,
+				'disabled' => Helpers::is_sqlite(),
+			),
 			'use_precomputed_tax_score' => self::gate_field_to_feature(
 				array(
 					'id'      => 'use_precomputed_tax_score',
@@ -903,6 +1008,22 @@ class Settings {
 				'type'    => 'checkbox',
 				'default' => false,
 			),
+			'include_header'            => array(
+				'id'   => 'include_header',
+				'name' => '<h3>' . esc_html__( 'Inclusion options', 'better-search' ) . '</h3>',
+				'desc' => esc_html__( 'These options restrict search results to the selected terms. Leave blank to search everything.', 'better-search' ),
+				'type' => 'header',
+			),
+			'include_cat_slugs'         => array(
+				'id'               => 'include_cat_slugs',
+				'name'             => esc_html__( 'Only include Categories', 'better-search' ),
+				'desc'             => esc_html__( 'The field above has an autocomplete. Start typing in the starting letters, and it will prompt you with options. This field requires a specific format as displayed by the autocomplete.', 'better-search' ),
+				'type'             => 'csv',
+				'default'          => '',
+				'size'             => 'large',
+				'field_class'      => 'ts_autocomplete',
+				'field_attributes' => self::get_taxonomy_search_field_attributes( 'category' ),
+			),
 			'exclude_header'            => array(
 				'id'   => 'exclude_header',
 				'name' => '<h3>' . esc_html__( 'Exclusion options', 'better-search' ) . '</h3>',
@@ -949,14 +1070,6 @@ class Settings {
 				'field_class'      => 'ts_autocomplete',
 				'field_attributes' => self::get_taxonomy_search_field_attributes( 'category' ),
 			),
-			'exclude_categories'        => array(
-				'id'       => 'exclude_categories',
-				'name'     => esc_html__( 'Exclude category IDs', 'better-search' ),
-				'desc'     => esc_html__( 'This is a readonly field that is automatically populated based on the above input when the settings are saved. These might differ from the IDs visible in the Categories page which use the term_id. Better Search uses the term_taxonomy_id which is unique to this taxonomy.', 'better-search' ),
-				'type'     => 'text',
-				'default'  => '',
-				'readonly' => true,
-			),
 			'banned_header'             => array(
 				'id'   => 'banned_header',
 				'name' => '<h3>' . esc_html__( 'Banned words options', 'better-search' ) . '</h3>',
@@ -966,7 +1079,7 @@ class Settings {
 			'badwords'                  => array(
 				'id'      => 'badwords',
 				'name'    => esc_html__( 'Filter these words', 'better-search' ),
-				'desc'    => esc_html__( 'Words in this list will be stripped out of the search results. Enter these as a comma-separated list.', 'better-search' ),
+				'desc'    => esc_html__( 'Words in this list will be stripped out of the search results. Enter these as a comma-separated list. Use * as a wildcard for any run of letters or digits, e.g. spam* also matches spammer.', 'better-search' ),
 				'type'    => 'textarea',
 				'default' => implode( ',', self::get_badwords() ),
 			),
@@ -1016,7 +1129,7 @@ class Settings {
 				array(
 					'id'                => 'search_redirects',
 					'name'              => esc_html__( 'Redirect rules', 'better-search' ),
-					'desc'              => esc_html__( 'Rules are checked in order, with exact matches taking priority over "contains" matches. Matching ignores case, leading and trailing spaces, and repeated spaces. The same keyword may appear in more than one rule; the first rule that matches wins, so put the rule you want to take precedence higher up the list. Add bsearch_no_redirect=1 to a search URL to see the results page instead; this works for administrators only.', 'better-search' ),
+					'desc'              => esc_html__( 'Rules are checked in order, with exact matches taking priority over wildcard matches, and wildcard matches over "contains" matches. Matching ignores case, leading and trailing spaces, and repeated spaces. The same keyword may appear in more than one rule; the first rule that matches wins, so put the rule you want to take precedence higher up the list. Add bsearch_no_redirect=1 to a search URL to see the results page instead; this works for administrators only.', 'better-search' ),
 					'type'              => 'repeater',
 					'default'           => array(),
 					'pro'               => true,
@@ -1028,7 +1141,7 @@ class Settings {
 						'keywords'         => array(
 							'id'       => 'keywords',
 							'name'     => esc_html__( 'Keywords', 'better-search' ),
-							'desc'     => esc_html__( 'Comma-separated list of search terms that trigger this redirect. e.g. support, help, contact us', 'better-search' ),
+							'desc'     => esc_html__( 'Comma-separated list of search terms that trigger this redirect. e.g. support, help, contact us', 'better-search' ) . '. ' . esc_html__( 'With the wildcard match type, * stands for any characters, so help* matches "help me" and *help* matches "please help me".', 'better-search' ),
 							'type'     => 'csv',
 							'required' => true,
 							'default'  => '',
@@ -1053,11 +1166,12 @@ class Settings {
 						'match_type'       => array(
 							'id'      => 'match_type',
 							'name'    => esc_html__( 'Match type', 'better-search' ),
-							'desc'    => esc_html__( 'Exact matches the whole search phrase. Contains matches when the keyword appears anywhere in the search phrase.', 'better-search' ),
+							'desc'    => esc_html__( 'Exact matches the whole search phrase. Wildcard matches the whole search phrase with * standing for any characters. Contains matches when the keyword appears anywhere in the search phrase.', 'better-search' ),
 							'type'    => 'select',
 							'default' => 'exact',
 							'options' => array(
 								'exact'    => esc_html__( 'Exact match', 'better-search' ),
+								'wildcard' => esc_html__( 'Wildcard (*)', 'better-search' ),
 								'contains' => esc_html__( 'Contains', 'better-search' ),
 							),
 						),
@@ -1585,8 +1699,6 @@ class Settings {
 				'security' => wp_create_nonce( 'bsearch-admin' ),
 				'strings'  => array(
 					'confirm_message'      => esc_html__( 'Are you sure you want to clear the cache?', 'better-search' ),
-					'clearing_text'        => esc_html__( 'Clearing...', 'better-search' ),
-					'success_message'      => esc_html__( 'Cache cleared successfully!', 'better-search' ),
 					'fail_message'         => esc_html__( 'Failed to clear cache. Please try again.', 'better-search' ),
 					'request_fail_message' => esc_html__( 'Request failed: ', 'better-search' ),
 				),
@@ -1607,10 +1719,13 @@ class Settings {
 		// Sanitize exclude_cat_slugs to save a new entry of exclude_categories.
 		Settings\Settings_Sanitize::sanitize_tax_slugs( $settings, 'exclude_cat_slugs', 'exclude_categories' );
 
+		// Sanitize include_cat_slugs to save a new entry of include_cat_ids.
+		Settings\Settings_Sanitize::sanitize_tax_slugs( $settings, 'include_cat_slugs', 'include_cat_ids' );
+
 		self::flag_incomplete_repeater_rows( $settings );
 
-		// Delete the cache.
-		\WebberZone\Better_Search\Util\Cache::delete();
+		// Both scopes: the custom-table path caches as site transients, the ordinary path as blog ones.
+		\WebberZone\Better_Search\Util\Cache::delete_all();
 
 		return $settings;
 	}
@@ -1821,6 +1936,9 @@ class Settings {
 			array(
 				'taxonomy'   => $taxonomy,
 				'name__like' => $search_term,
+				'orderby'    => 'name',
+				'order'      => 'ASC',
+				'number'     => 20,
 				'hide_empty' => false,
 			)
 		);
@@ -1841,12 +1959,13 @@ class Settings {
 	 * Get field attributes for Tom Select taxonomy search fields.
 	 *
 	 * @since 4.2.0
+	 * @since 4.5.0 Made public so Pro can swap the endpoint to all public taxonomies.
 	 *
 	 * @param  string $taxonomy  The taxonomy to search.
 	 * @param  array  $ts_config Optional Tom Select configuration.
 	 * @return array Field attributes array.
 	 */
-	private static function get_taxonomy_search_field_attributes( $taxonomy, $ts_config = array() ) {
+	public static function get_taxonomy_search_field_attributes( $taxonomy, $ts_config = array() ) {
 		$attributes = array(
 			'data-wp-prefix'   => strtoupper( (string) self::$prefix ),
 			'data-wp-action'   => self::$prefix . '_taxonomy_search_tom_select',
