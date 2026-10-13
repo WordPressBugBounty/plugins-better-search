@@ -69,6 +69,8 @@ function bsearch_delete_data() {
 		wp_clear_scheduled_hook( 'bsearch_ai_cleanup_log' );
 	}
 	delete_option( 'bsearch_ai_content_version' );
+	delete_option( 'bsearch_ai_publish_version' );
+	delete_post_meta_by_key( '_bsearch_ai_rev' );
 
 	if ( defined( 'BETTER_SEARCH_DELETE_DATA' ) && BETTER_SEARCH_DELETE_DATA ) {
 		$wpdb->query( 'DROP TABLE ' . $wpdb->prefix . 'bsearch' ); //phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.DirectQuery
@@ -81,6 +83,7 @@ function bsearch_delete_data() {
 	delete_option( 'ald_bsearch_settings' );
 	delete_option( 'bsearch_settings' );
 	delete_option( 'bsearch_db_version' );
+	delete_option( 'bsearch_empty_results_version' );
 	delete_site_option( 'better_search_selected_sites' );
 
 	// Delete wizard-related options.
