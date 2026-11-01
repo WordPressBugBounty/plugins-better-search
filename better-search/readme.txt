@@ -2,7 +2,7 @@
 Contributors: webberzone, Ajay
 Tags: search, Better Search, related search, relevant search, relevance
 Donate link: https://wzn.io/donate-wz
-Stable tag: 4.5.2
+Stable tag: 4.5.3
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -132,6 +132,29 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 4.5.3 =
+
+Release date: 1 November 2026
+
+**Added**
+
+* [Pro] List of posts that failed to index in Tools, with a Retry button. WP-CLI reindexing now exits with an error when any post fails.
+
+**Changed**
+
+* Replaced the layout table in the search results header with a CSS Grid, so screen readers no longer announce it as a data table. Custom CSS targeting its `table`, `tr` or `td` elements needs updating.
+
+**Security**
+
+* Restricted the `post_type` search parameter to searchable post types, so revisions of draft, private and password-protected posts, and internal content such as menu items, no longer appeared in front-end search results.
+* Excluded attachments of unpublished posts and of post types visitors cannot view from search results, and attachments of password-protected posts when "Exclude password protected posts" was enabled.
+* [Pro] Applied the same rules to the LIKE fallback and Did You Mean auto-correct, which had returned revisions, these attachments and, to logged-in users, password-protected posts.
+
+**Fixed**
+
+* On attachment pages, and in search results that included an attachment, posts without a featured image used that attachment as their thumbnail.
+* Attachment searches served from the cache returned no results.
+
 = 4.5.2 =
 
 Release date: 15 October 2026
@@ -171,19 +194,19 @@ Release post: https://webberzone.com/announcements/better-search-v4-5/
 
 **Added**
 
-* Added WordPress Abilities API support for site searches, with an option to disable it in the Features tab.
-* Added a Status section to Tools showing database, index and cache health.
-* Added a setting to restrict search results to selected terms.
-* Added `*` wildcard support to filtered words, so `spam*` also blocked "spammer".
-* Added translated titles and language-specific links to TranslatePress live-search suggestions.
-* Added the `data-bsearch-live-search="off"` form attribute, so forms with their own live search did not show a second list of suggestions.
-* [Pro] Added abilities for popular search terms, spelling suggestions and cache clearing.
-* [Pro] Added optional AI answers grounded in Better Search results, with source links, cached answers, usage limits and a Content gaps report.
-* [Pro] Added WP-CLI commands for AI questions, answer-cache management and Content gaps.
+* WordPress Abilities API support for site searches, with an option to disable it in the Features tab.
+* Status section in Tools showing database, index and cache health.
+* Setting to restrict search results to selected terms.
+* `*` wildcard support in filtered words, so `spam*` also blocked "spammer".
+* Translated titles and language-specific links in TranslatePress live-search suggestions.
+* `data-bsearch-live-search="off"` form attribute, so forms with their own live search did not show a second list of suggestions.
+* [Pro] Abilities for popular search terms, spelling suggestions and cache clearing.
+* [Pro] Optional AI answers grounded in Better Search results, with source links, cached answers, usage limits and a Content gaps report.
+* [Pro] WP-CLI commands for AI questions, answer-cache management and Content gaps.
 * [Pro] Expanded Tools status with custom-table and AI-provider health.
-* [Pro] Added optional recency weighting, disabled by default; existing custom-table indexes required a one-time backfill from Tools.
-* [Pro] Added optional ranking weights for slug, metadata, author and comment matches.
-* [Pro] Added wildcard search redirects, so `help*` could match multiple search phrases.
+* [Pro] Optional recency weighting, disabled by default; existing custom-table indexes required a one-time backfill from Tools.
+* [Pro] Optional ranking weights for slug, metadata, author and comment matches.
+* [Pro] Wildcard search redirects, so `help*` could match multiple search phrases.
 
 **Changed**
 
@@ -212,5 +235,14 @@ For the changelog of earlier versions, please refer to the [releases page on Git
 
 == Upgrade Notice ==
 
+= 4.5.3 =
+Security release. Stops front-end search from returning revisions of draft, private and password-protected posts, and attachments of unpublished posts. Update as soon as you can. Pro users with custom tables should reindex them from the Tools page.
+
 = 4.5.2 =
 Security release. Hardens password protection in thumbnail fallbacks and rejects unsafe thumbnail URLs. Also fixes errors with malformed thumbnail dimensions. Update recommended.
+
+= 4.5.1 =
+Faster Pro AI answers with a choice of model, better answer caching, and fixes for Pro AI crashes with ECSI. Adds Ask AI to theme search forms. Update recommended for all users.
+
+= 4.5.0 =
+Security and performance release. Adds optional Pro AI answers and ranking controls, and fixes multilingual caching and search accuracy. Requires WordPress 6.9 or later.
