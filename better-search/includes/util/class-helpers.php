@@ -59,7 +59,7 @@ class Helpers {
 		// Instantiate WP_Error class.
 		$bsearch_error = new \WP_Error();
 
-		$val = rawurldecode( $val );
+		$val = self::normalize_search_term( $val );
 
 		// Block SQL injection attempts by detecting common patterns.
 		$sql_injection_patterns = array(
@@ -134,6 +134,84 @@ class Helpers {
 		 * @param   string  $val    Cleaned string
 		 */
 		return apply_filters( 'bsearch_clean_terms', $val );
+	}
+
+	/**
+	 * Checks the request user agent against known crawler and script patterns.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @return bool Whether the request appears to come from a bot.
+	 */
+	public static function is_bot() {
+		if ( empty( $_SERVER['HTTP_USER_AGENT'] ) || ! is_string( $_SERVER['HTTP_USER_AGENT'] ) ) {
+			return false;
+		}
+
+		$user_agent = strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) );
+		$patterns   = apply_filters(
+			'bsearch_bot_user_agents',
+			array(
+				'bot',
+				'crawler',
+				'spider',
+				'slurp',
+				'curl',
+				'wget',
+				'python-requests',
+				'python-urllib',
+				'go-http-client',
+				'scrapy',
+				'headlesschrome',
+				'phantomjs',
+			)
+		);
+
+		foreach ( (array) $patterns as $pattern ) {
+			if ( is_string( $pattern ) && '' !== $pattern && false !== strpos( $user_agent, strtolower( $pattern ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether a term contains a currently banned word.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param mixed $val Search term.
+	 * @return bool Whether the term contains a banned word.
+	 */
+	public static function has_banned_words( $val ) {
+		$val      = self::normalize_search_term( $val );
+		$badwords = array_map( 'trim', explode( ',', bsearch_get_option( 'badwords' ) ) );
+		$censored = self::censor_string( $val, $badwords, apply_filters( 'bsearch_censor_char', '', $val ), bsearch_get_option( 'banned_whole_words' ) );
+
+		return $censored['clean'] !== $censored['orig'];
+	}
+
+	/**
+	 * Decode and normalize a search term before filtering or storing it.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param mixed $val Search term.
+	 * @return string Normalized plain-text term.
+	 */
+	private static function normalize_search_term( $val ) {
+		if ( ! is_string( $val ) && ! is_numeric( $val ) ) {
+			return '';
+		}
+
+		$val     = rawurldecode( (string) $val );
+		$charset = get_option( 'blog_charset' );
+		$val     = html_entity_decode( $val, ENT_QUOTES | ENT_HTML5, $charset ? $charset : 'UTF-8' );
+		$val     = wp_strip_all_tags( $val, true );
+		$val     = preg_replace( '!\s+!', ' ', $val );
+
+		return sanitize_text_field( $val );
 	}
 
 

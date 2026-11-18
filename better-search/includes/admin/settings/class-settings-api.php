@@ -842,7 +842,14 @@ class Settings_API {
 				}
 
 				// Every callback receives the field configuration so choice fields can validate against their own options.
-				return function ( $value ) use ( $settings_sanitize, $method, $setting ) {
+				$scalar_types = array( 'text', 'textarea', 'html', 'css', 'url', 'file', 'email', 'password', 'wysiwyg', 'number', 'csv', 'numbercsv', 'postids', 'color', 'datetime', 'select', 'radio', 'radiodesc' );
+				$is_scalar    = in_array( $setting['type'], $scalar_types, true );
+
+				return function ( $value ) use ( $settings_sanitize, $method, $setting, $is_scalar ) {
+					// Arrays or objects in single-value fields (crafted POST or import) would fatal in the string sanitizers.
+					if ( $is_scalar && ! is_scalar( $value ) && ! is_null( $value ) ) {
+						$value = '';
+					}
 					return $settings_sanitize->$method( $value, $setting );
 				};
 			}
@@ -935,7 +942,8 @@ class Settings_API {
 
 				// If callback is set, call it.
 				if ( $sanitize_callback ) {
-					$output[ $key ] = call_user_func( $sanitize_callback, $input[ $key ] );
+					// The sanitizers unslash form input, but WordPress has already unslashed the option value.
+					$output[ $key ] = call_user_func( $sanitize_callback, wp_slash( $input[ $key ] ) );
 					continue;
 				}
 			}
@@ -958,7 +966,7 @@ class Settings_API {
 		);
 
 		foreach ( array_diff_key( $input, $settings_types ) as $key => $value ) {
-			$output[ sanitize_text_field( (string) $key ) ] = $settings_sanitize->sanitize_missing( $value );
+			$output[ sanitize_text_field( (string) $key ) ] = $settings_sanitize->sanitize_missing( wp_slash( $value ) );
 		}
 
 		add_settings_error( $this->prefix . '-notices', '', $this->translation_strings['success_message'], 'updated' );
@@ -1068,6 +1076,12 @@ class Settings_API {
 
 		}
 
+		$html .= sprintf(
+			'<li class="wz-settings-nav-save"><button type="submit" class="button button-primary" name="submit" form="%1$s">%2$s</button></li>',
+			esc_attr( "{$this->prefix}-settings-form" ),
+			esc_html( $this->translation_strings['save_changes'] )
+		);
+
 		$html .= '</ul>';
 
 		$allowed_html           = wp_kses_allowed_html( 'post' );
@@ -1081,6 +1095,8 @@ class Settings_API {
 		$allowed_html['button'] = array(
 			'type'       => true,
 			'class'      => true,
+			'name'       => true,
+			'form'       => true,
 			'aria-label' => true,
 			'hidden'     => true,
 		);

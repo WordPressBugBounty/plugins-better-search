@@ -8,6 +8,7 @@
 namespace WebberZone\Better_Search;
 
 use WebberZone\Better_Search\Util\Hook_Registry;
+use WebberZone\Better_Search\Util\Helpers;
 
 if ( ! defined( 'WPINC' ) ) {
 	exit;
@@ -26,9 +27,8 @@ class Tracker {
 	 * @since 3.3.0
 	 */
 	public function __construct() {
-		Hook_Registry::add_action( 'parse_request', array( $this, 'parse_request' ) );
-		Hook_Registry::add_filter( 'query_vars', array( $this, 'query_vars' ) );
 		Hook_Registry::add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		Hook_Registry::add_action( 'wp_loaded', array( $this, 'handle_request' ) );
 		Hook_Registry::add_action( 'wp_ajax_nopriv_bsearch_tracker', array( $this, 'tracker_parser' ) );
 		Hook_Registry::add_action( 'wp_ajax_bsearch_tracker', array( $this, 'tracker_parser' ) );
 	}
@@ -65,6 +65,12 @@ class Tracker {
 				'bsearch_rnd'          => wp_rand( 1, time() ),
 			);
 
+			global $wp_query;
+			if ( $wp_query instanceof \WP_Query && 0 === (int) $wp_query->found_posts && 0 === (int) $wp_query->post_count ) {
+				$ajax_bsearch_tracker['bsearch_no_results'] = 1;
+				$ajax_bsearch_tracker['bsearch_token']      = No_Results::get_token( $search_query );
+			}
+
 			/**
 			 * Filter the localize script arguments for the Better Search tracker.
 			 *
@@ -99,6 +105,10 @@ class Tracker {
 			return false;
 		}
 
+		if ( \bsearch_get_option( 'no_bots' ) && Helpers::is_bot() ) {
+			return false;
+		}
+
 		$bpaged = ( isset( $_GET['bpaged'] ) ) ? absint( $_GET['bpaged'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		if ( $bpaged || is_paged() ) {
@@ -129,68 +139,21 @@ class Tracker {
 	}
 
 	/**
-	 * Function to add additional queries to query_vars.
+	 * Handle a tracker request posted to the front end, which skips the admin bootstrap that admin-ajax.php runs.
 	 *
-	 * @since   2.0.0
-	 *
-	 * @param   array $vars   Query variables array.
-	 * @return  array Query variables array with Better Search parameters appended
+	 * @since 4.6.0
 	 */
-	public static function query_vars( $vars ) {
-		// Add these to the list of queryvars that WP gathers.
-		$vars[] = 'bsearch_search_query';
-		$vars[] = 'bsearch_debug';
-
-		/**
-		 * Function to add additional queries to query_vars.
-		 *
-		 * @since 2.2.4
-		 *
-		 * @param array $vars Updated Query variables array with Better Search queries added.
-		 */
-		return apply_filters( 'bsearch_query_vars', $vars );
-	}
-
-	/**
-	 * Parses the WordPress object to update/display the count.
-	 *
-	 * @since   2.0.0
-	 *
-	 * @param \WP|null $wp Current WordPress environment instance.
-	 */
-	public static function parse_request( $wp ) {
-
-		if ( empty( $wp ) ) {
-			global $wp;
-		}
-
-		if ( ! $wp instanceof \WP ) {
+	public static function handle_request() {
+		if ( is_admin() || ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) {
 			return;
 		}
 
-		if ( array_key_exists( 'bsearch_search_query', $wp->query_vars ) && empty( $wp->query_vars['bsearch_search_query'] ) ) {
-			exit;
-		}
-
-		if ( array_key_exists( 'bsearch_search_query', $wp->query_vars ) && ! empty( $wp->query_vars['bsearch_search_query'] ) ) {
-
-			$search_query = rawurldecode( wp_kses_data( wp_unslash( $wp->query_vars['bsearch_search_query'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$debug        = ( array_key_exists( 'bsearch_debug', $wp->query_vars ) && 1 === absint( $wp->query_vars['bsearch_debug'] ) );
-
-			$str = self::update_count( $search_query );
-
-			if ( $debug ) {
-				header( 'Content-Type: text/plain; charset=UTF-8' );
-				header( 'Cache-Control: max-age=15, s-maxage=0' );
-				echo $str; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			}
-
-			// Stop anything else from loading as it is not needed.
-			exit;
-
-		} else {
+		if ( ! isset( $_POST['action'], $_POST['bsearch_search_query'] ) || 'bsearch_tracker' !== $_POST['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			return;
 		}
+
+		nocache_headers();
+		self::tracker_parser();
 	}
 
 	/**
@@ -200,38 +163,51 @@ class Tracker {
 	 */
 	public static function tracker_parser() {
 
-		$search_query = isset( $_POST['bsearch_search_query'] ) ? rawurldecode( wp_kses_data( wp_unslash( $_POST['bsearch_search_query'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$search_query = isset( $_POST['bsearch_search_query'] ) && is_string( $_POST['bsearch_search_query'] ) ? wp_unslash( $_POST['bsearch_search_query'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$debug        = isset( $_POST['bsearch_debug'] ) ? absint( $_POST['bsearch_debug'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-		$str = self::update_count( $search_query );
+		$token = isset( $_POST['bsearch_token'] ) && is_string( $_POST['bsearch_token'] ) ? sanitize_text_field( wp_unslash( $_POST['bsearch_token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		// The token is issued only on a results page that had no results, so browsers cannot flag other terms.
+		$no_results = ! empty( $_POST['bsearch_no_results'] ) && '' !== $token && hash_equals( No_Results::get_token( $search_query ), $token ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		$str = self::update_count( $search_query, $no_results );
 
 		if ( 1 === $debug ) {
 			header( 'Content-Type: text/plain; charset=UTF-8' );
 			echo $str; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			wp_die();
 		}
 
-		wp_die( '', '', array( 'response' => 200 ) );
+		if ( wp_doing_ajax() ) {
+			wp_die( '', '', array( 'response' => 200 ) );
+		}
+
+		exit;
 	}
 
 	/**
 	 * Function to update the count in the database.
 	 *
 	 * @since 3.3.0
+	 * @since 4.6.0 Added $no_results parameter.
 	 *
-	 * @param string $search_query Search Query.
+	 * @param mixed $search_query Search Query.
+	 * @param bool  $no_results   Whether the search returned no results.
 	 * @return string Response on database update.
 	 */
-	public static function update_count( $search_query ) {
+	public static function update_count( $search_query, $no_results = false ) {
 
 		global $wpdb;
 
 		$table_name       = $wpdb->prefix . 'bsearch';
 		$table_name_daily = $wpdb->prefix . 'bsearch_daily';
-		$search_query     = str_replace( '&quot;', '"', $search_query );
 		$str              = '';
+		$search_query     = is_scalar( $search_query ) ? Helpers::clean_terms( (string) $search_query ) : '';
 
-		if ( '' !== $search_query ) {
+		global $bsearch_error;
+		$banned_term = isset( $bsearch_error ) && $bsearch_error instanceof \WP_Error && in_array( 'bsearch_banned', $bsearch_error->get_error_codes(), true );
+
+		if ( '' !== $search_query && ! $banned_term && mb_strlen( $search_query ) <= 100 && self::should_track() && ! self::is_rate_limited() ) {
 			$bst = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->prepare(
 					"INSERT INTO $table_name (searchvar, cntaccess) VALUES (%s, 1) ON DUPLICATE KEY UPDATE cntaccess = cntaccess + 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -253,6 +229,10 @@ class Tracker {
 			); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
 			$str .= ( false === $bsd ) ? ' bsd_error' : ' bsd_' . $bsd;
+
+			if ( $no_results ) {
+				$str .= No_Results::record( $search_query ) ? ' bsn_1' : ' bsn_error';
+			}
 		}
 
 		/**
@@ -264,5 +244,53 @@ class Tracker {
 		 * @param string $search_query  Search query.
 		 */
 		return apply_filters( 'bsearch_update_count', $str, $search_query );
+	}
+
+	/**
+	 * Enforces a site-wide search tracking budget without storing visitor identifiers.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @return bool Whether the tracking budget has been reached.
+	 */
+	private static function is_rate_limited() {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			return false;
+		}
+
+		$limit = min( 1000000, max( 1, absint( apply_filters( 'bsearch_tracker_rate_limit_per_minute', bsearch_get_option( 'tracker_limit', 20 ) ) ) ) );
+		$slot  = intdiv( time(), MINUTE_IN_SECONDS );
+
+		global $wpdb;
+
+		if ( ! empty( $wpdb->is_mysql ) ) {
+			$option_name = 'bsearch_tracker_rate_limit';
+			$result      = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare(
+					"INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, CONCAT(%d, ':1'), 'no') ON DUPLICATE KEY UPDATE option_value = CASE WHEN CAST(SUBSTRING_INDEX(option_value, ':', 1) AS UNSIGNED) != %d THEN CONCAT(%d, ':1') WHEN CAST(SUBSTRING_INDEX(option_value, ':', -1) AS UNSIGNED) < %d THEN CONCAT(%d, ':', CAST(SUBSTRING_INDEX(option_value, ':', -1) AS UNSIGNED) + 1) ELSE option_value END",
+					$option_name,
+					$slot,
+					$slot,
+					$slot,
+					$limit,
+					$slot
+				)
+			);
+
+			wp_cache_delete( $option_name, 'options' );
+
+			return false === $result || 0 === (int) $wpdb->rows_affected;
+		}
+
+		$key   = 'bsearch_tracker_rate_' . $slot;
+		$count = (int) get_transient( $key );
+
+		if ( $count >= $limit ) {
+			return true;
+		}
+
+		set_transient( $key, $count + 1, MINUTE_IN_SECONDS );
+
+		return false;
 	}
 }
