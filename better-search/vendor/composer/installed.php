@@ -3,7 +3,7 @@
         'name' => 'webberzone/better-search',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => 'adba642caa7416b7eea7eb525ff6a801f0810048',
+        'reference' => 'b32c352bc134962541bb3ad8eb6a6b58fd82d426',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'webberzone/better-search' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => 'adba642caa7416b7eea7eb525ff6a801f0810048',
+            'reference' => 'b32c352bc134962541bb3ad8eb6a6b58fd82d426',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
